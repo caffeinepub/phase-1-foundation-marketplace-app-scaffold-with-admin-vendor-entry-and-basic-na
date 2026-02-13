@@ -1,13 +1,15 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 57,
+  "projectStateVersion": 65,
   "summary": "Proceeding from Phase 4 to Phase 5 work, starting the vendor discovery experience (public verified vendors directory + vendor storefront support).",
   "architectural_notes": [
     "Target stack: ICP/Caffeine with single Motoko backend canister + React frontend canister.",
     "Auth via Internet Identity for admin and vendors.",
     "Phase-1/early MVP scope explicitly excludes payments, DAOs, advanced dashboards/analytics, complex roles/permissions, and multi-organization until later phases.",
     "Deployment/upgrade stability: add stable storage + preupgrade/postupgrade (and conditional migration per policy) to ensure upgrade-safe persistence and unblock deployments when backend grows.",
-    "Backlog decision: consolidate repeated upgrade-safety/stable-storage AR items into a single implementation pass (stable storage + preupgrade/postupgrade + conditional migration only if required)."
+    "Backlog decision: consolidate repeated upgrade-safety/stable-storage AR items into a single implementation pass (stable storage + preupgrade/postupgrade + conditional migration only if required).",
+    "Introduce backend-enforced admin authorization via a persisted allowlist of admin principals (not just a frontend role toggle); admin-only endpoints must validate caller principal against this list.",
+    "Admin allowlist management should be authorized for both existing admins and a designated app creator/owner principal (super-admin) to support bootstrap/recovery and avoid lockout."
   ],
   "known_issues": [
     "Caffeine build/generation attempts have failed previously with 'AI was unable to fulfill/implement' errors; may require simplifying prompts or smaller phase-by-phase generation.",
@@ -204,6 +206,54 @@
       "title": "Add a minimal admin-facing UI section to support manual upgrade verification by displaying the backend upgrade diagnostics summary and short instructions for checking values before vs. after an upgrade.",
       "reqIds": [
         "REQ-56"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-frontend-admin-gating-to-reflect-backend-stored-admin-privileges-prevent-or-discourage-non-admin-users-from-entering-admin-only-flows-and-show-clear-unauthorized-messaging-when-backend-denies-access",
+      "title": "Update frontend admin gating to reflect backend-stored admin privileges: prevent or discourage non-admin users from entering admin-only flows, and show clear unauthorized messaging when backend denies access.",
+      "reqIds": [
+        "REQ-99"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-an-admin-assignment-section-to-the-admin-dashboard-ui-frontend-src-pages-adminplaceholderpage-tsx-that-lets-authorized-admins-view-the-current-admin-allowlist-and-add-remove-admin-principals-and-lets-a-non-admin-user-claim-initial-admin-only-when-the-backend-indicates-no-admins-exist-yet",
+      "title": "Add an Admin Assignment section to the Admin Dashboard UI (frontend/src/pages/AdminPlaceholderPage.tsx) that lets authorized admins view the current admin allowlist and add/remove admin principals, and lets a non-admin user claim initial admin only when the backend indicates no admins exist yet.",
+      "reqIds": [
+        "REQ-100"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-extend-frontend-react-query-marketplace-hooks-frontend-src-hooks-usemarketplacequeries-ts-to-support-the-new-admin-assignment-apis-list-admins-add-admin-remove-admin-and-initial-claim-admin-count-as-needed-including-query-invalidation-to-keep-admin-ui-consistent-after-mutations",
+      "title": "Extend frontend React Query marketplace hooks (frontend/src/hooks/useMarketplaceQueries.ts) to support the new admin assignment APIs (list admins, add admin, remove admin, and initial-claim/admin-count as needed), including query invalidation to keep admin UI consistent after mutations.",
+      "reqIds": [
+        "REQ-101"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-admin-gating-and-ui-so-the-app-owner-creator-can-access-admin-only-flows-needed-for-allowlist-management-this-includes-1-adding-react-query-hooks-in-frontend-src-hooks-usemarketplacequeries-ts-for-reading-app-owner-state-and-checking-whether-the-caller-is-the-app-owner-2-updating-frontend-src-components-auth-requireadmin-tsx-to-allow-access-when-the-caller-is-either-an-admin-or-the-app-owner-and-3-updating-user-facing-copy-to-reflect-admin-or-app-owner-required-where-relevant",
+      "title": "Update the frontend admin gating and UI so the App Owner/Creator can access admin-only flows needed for allowlist management. This includes: (1) adding React Query hooks in frontend/src/hooks/useMarketplaceQueries.ts for reading app owner state and checking whether the caller is the app owner, (2) updating frontend/src/components/auth/RequireAdmin.tsx to allow access when the caller is either an admin or the app owner, and (3) updating user-facing copy to reflect “Admin or App Owner required” where relevant.",
+      "reqIds": [
+        "REQ-104"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-refine-the-admin-dashboard-admin-assignment-section-frontend-src-pages-adminplaceholderpage-tsx-to-explicitly-support-the-app-owner-creator-concept-show-the-current-app-owner-principal-or-not-set-show-whether-the-signed-in-user-is-the-app-owner-and-provide-a-claim-app-owner-action-only-when-the-app-owner-is-not-set-the-existing-admin-allowlist-management-ui-must-remain-available-to-admins-and-must-also-be-available-to-the-app-owner",
+      "title": "Refine the Admin Dashboard admin assignment section (frontend/src/pages/AdminPlaceholderPage.tsx) to explicitly support the App Owner/Creator concept: show the current app owner principal (or “Not set”), show whether the signed-in user is the app owner, and provide a “Claim App Owner” action only when the app owner is not set. The existing admin allowlist management UI must remain available to admins, and must also be available to the app owner.",
+      "reqIds": [
+        "REQ-105"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-clear-ui-messaging-addressing-end-to-end-user-handling-as-a-later-phase-provide-a-small-users-planned-section-in-the-admin-dashboard-explaining-that-broader-user-lifecycle-management-beyond-the-current-minimal-internet-identity-login-basic-user-profile-support-will-be-addressed-in-a-later-phase-without-implementing-full-user-management-in-this-change",
+      "title": "Add clear UI messaging addressing end-to-end “user” handling as a later phase: provide a small “Users (Planned)” section in the Admin Dashboard explaining that broader user lifecycle/management beyond the current minimal Internet Identity login + basic user profile support will be addressed in a later phase, without implementing full user management in this change.",
+      "reqIds": [
+        "REQ-106"
       ],
       "version": 1
     }
@@ -750,6 +800,136 @@
       "summary": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (counts and counters match reality) so the Admin Dashboard upgrade verification UI can be used to validate upgrade preservation before vs. after deployments.",
       "reqIds": [
         "REQ-86"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-76",
+      "summary": "Persist all backend marketplace state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage so that upgrades do not lose: accessControlState, userProfiles, vendors, products, lastVendorId, and lastProductId.",
+      "reqIds": [
+        "REQ-87"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-77",
+      "summary": "Implement correct system upgrade hooks (preupgrade/postupgrade) in backend/main.mo that round-trip all persisted state to/from stable storage without data loss, replacing the current hooks that only print debug messages.",
+      "reqIds": [
+        "REQ-88"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-78",
+      "summary": "Follow the platform conditional migration policy: add or update backend/migration.mo only if required to preserve already-deployed state when transitioning from the current in-memory Map-based state to the new stable persistence implementation.",
+      "reqIds": [
+        "REQ-89"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-79",
+      "summary": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary reflects the persisted state accurately after upgrades (vendorCount/productCount and lastVendorId/lastProductId match reality).",
+      "reqIds": [
+        "REQ-90"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-80",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and migration logic, if present) to help diagnose upgrade issues without exposing sensitive data.",
+      "reqIds": [
+        "REQ-91"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-81",
+      "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage, including: accessControlState, userProfiles, vendors, products, lastVendorId, and lastProductId.",
+      "reqIds": [
+        "REQ-92"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-82",
+      "summary": "Implement correct system upgrade hooks (preupgrade/postupgrade) in backend/main.mo that round-trip all persisted state to/from stable storage without data loss, replacing the current behavior that has no state serialization.",
+      "reqIds": [
+        "REQ-93"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-83",
+      "summary": "Follow the platform conditional migration policy: create or update backend/migration.mo only if required to preserve already-deployed state when transitioning from the current in-memory Map-based state to the new stable persistence implementation.",
+      "reqIds": [
+        "REQ-94"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-84",
+      "summary": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (vendorCount/productCount and lastVendorId/lastProductId match reality) so the Admin Dashboard upgrade verification UI can be used to validate upgrade preservation before vs. after deployments.",
+      "reqIds": [
+        "REQ-95"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-85",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and migration logic, if present) to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
+      "reqIds": [
+        "REQ-96"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-86",
+      "summary": "Add real backend-stored admin assignment: persist an allowlist of admin principals in the Motoko backend and enforce admin-only authorization checks for admin actions (e.g., vendor verification), instead of relying on a frontend-only \"Admin mode\" toggle.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-87",
+      "summary": "Implement real backend-stored admin assignment by persisting an allowlist of admin principals in the Motoko backend and using it as the source of truth for admin authorization (do not rely on the frontend-only “Admin mode” toggle for permissions).",
+      "reqIds": [
+        "REQ-97"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-88",
+      "summary": "Add backend APIs to manage admin principals, including a safe bootstrapping mechanism so the first admin can be created on a fresh deployment without manual state editing.",
+      "reqIds": [
+        "REQ-98"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-89",
+      "summary": "Refine admin assignment authorization: allow admin allowlist management to be performed by (a) any current admin principal and (b) a designated app-creator/owner principal (super-admin) for bootstrap/recovery.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-90",
+      "summary": "Plan/implement end-to-end user handling (non-vendor/non-admin users): define user profiles/registration, visibility in UI, and how users interact with vendors/products across the system in a later phase.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-91",
+      "summary": "Add a persistent “App Owner / Creator” principal to the Motoko backend and treat it as a super-admin for admin-allowlist management (bootstrap and recovery). The backend must (1) store an optional appOwner principal, (2) expose query APIs to read the appOwner and check if the caller is the appOwner, and (3) expose a one-time shared API that lets an authenticated caller claim appOwner only when no appOwner has been set yet.",
+      "reqIds": [
+        "REQ-102"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-92",
+      "summary": "Update backend authorization rules so that admin allowlist management can be performed by either (a) any principal currently in the admin allowlist OR (b) the app owner/creator principal. This must apply to all admin allowlist management APIs (listing admins, adding admins, removing admins, and any “set admins”/bootstrap helpers that are used for allowlist management).",
+      "reqIds": [
+        "REQ-103"
       ],
       "status": "pending"
     }

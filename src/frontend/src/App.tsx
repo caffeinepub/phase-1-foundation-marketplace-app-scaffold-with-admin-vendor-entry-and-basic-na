@@ -13,6 +13,7 @@ import RoleSelectPage from './pages/RoleSelectPage';
 import AppLayout from './components/layout/AppLayout';
 import RequireAuth from './components/auth/RequireAuth';
 import RequireRoleMode from './components/auth/RequireRoleMode';
+import RequireAdmin from './components/auth/RequireAdmin';
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -67,9 +68,9 @@ const adminRoute = createRoute({
   path: '/admin',
   component: () => (
     <RequireAuth>
-      <RequireRoleMode requiredMode="admin">
+      <RequireAdmin>
         <AdminPlaceholderPage />
-      </RequireRoleMode>
+      </RequireAdmin>
     </RequireAuth>
   ),
 });

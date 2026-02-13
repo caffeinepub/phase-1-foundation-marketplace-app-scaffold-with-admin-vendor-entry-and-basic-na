@@ -1,12 +1,14 @@
 # Specification
 
 ## Summary
-**Goal:** Make the marketplace backend upgrade-safe by persisting all critical state across canister upgrades, with a conditional migration path and minimal diagnostics.
+**Goal:** Let both Admins and the App Creator/Owner manage the admin allowlist, with a one-time owner claim flow, and clarify that full end-to-end user management is planned for a later phase.
 
 **Planned changes:**
-- Move current in-memory backend state in `backend/main.mo` into stable storage and implement `preupgrade`/`postupgrade` hooks to serialize and restore the full state (access control state, user profiles, vendors, products, ID counters, and required metadata).
-- Add a conditional upgrade migration path to preserve already-deployed in-memory Map-based state when transitioning to stable persistence (create or update `backend/migration.mo` only if required by the platform policy), ensuring migration is idempotent.
-- Add minimal, non-user-facing sanity checks/logging around upgrade hooks (and migration if present) using only non-sensitive diagnostics (counts/counters/version info).
-- Ensure the admin-only `getUpgradeSummary` endpoint accurately reflects persisted counts and counters after upgrades, without changing its authorization behavior.
+- Backend: add a persistent optional App Owner/Creator principal, with query APIs to read it and check if the caller is the owner, plus a one-time “claim owner” method when unset.
+- Backend: update authorization for all admin allowlist management APIs so they are accessible to either allowlisted admins or the App Owner/Creator, with clear unauthorized errors and existing safety constraints preserved.
+- Frontend: add React Query hooks to fetch the App Owner state and whether the caller is the owner, wired to backend methods.
+- Frontend: update admin gating (RequireAdmin) and relevant UI copy to allow access for “Admin or App Owner”.
+- Frontend: refine the Admin Dashboard admin assignment area to show the App Owner status, whether the current user is the owner, and a “Claim App Owner” action only when owner is unset; keep allowlist controls available to admins and the owner.
+- Frontend: add a small “Users (Planned)” section explaining broader user lifecycle/management will be addressed in a later phase (no new user-management features implemented).
 
-**User-visible outcome:** After a canister upgrade, existing vendor profiles and products remain available through existing APIs/UI, new vendor/product IDs continue allocating without collisions, and admins can verify preservation via the existing upgrade summary/diagnostics.
+**User-visible outcome:** The App Owner/Creator can access admin allowlist management even if not already on the allowlist, can claim ownership once if unset, and the Admin Dashboard clearly indicates that comprehensive user management is planned for a later phase.

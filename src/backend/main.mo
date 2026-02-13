@@ -1,4 +1,3 @@
-import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Text "mo:core/Text";
 import Principal "mo:core/Principal";
@@ -8,23 +7,24 @@ import List "mo:core/List";
 import Int "mo:core/Int";
 import Time "mo:core/Time";
 import Auth "authorization/access-control";
-import Migration "migration";
-import MixinAuthorization "authorization/MixinAuthorization";
 import Debug "mo:core/Debug";
 
-(with migration = Migration.run)
-actor {
-  var accessControlState : Auth.AccessControlState = Auth.initState();
-  include MixinAuthorization(accessControlState);
+import MixinAuthorization "authorization/MixinAuthorization";
 
+// Required for stable Map support
+import Map "mo:core/Map";
+
+actor {
+  // Needed for metadata queries
   type Env = {
     #dev;
     #prod;
   };
 
+  public type Version = Text;
+  var version : Version = "2.2.0";
   var environment : Env = #prod;
-  type Version = Text;
-  var version : Version = "2.1.0";
+
   public type BackendMetadata = {
     version : Version;
     environment : Env;
@@ -37,15 +37,28 @@ actor {
     };
   };
 
-  public query ({ caller }) func ping() : async Bool { true };
+  // Time constants
+  let oneDayInNanos = 24 * 60 * 60 * 1_000_000_000;
 
-  public query ({ caller }) func whoami() : async Principal { caller };
-
+  // Type definitions
   type Money = Nat;
   type ProductCurrency = Text;
-  type Timestamp = Int;
   public type ProductId = Nat;
   public type VendorId = Nat;
+  type Timestamp = Int;
+
+  var accessControlState = Auth.initState();
+  var appOwner : ?Principal = null;
+
+  include MixinAuthorization(accessControlState);
+
+  var userProfiles = Map.empty<Principal, UserProfile>();
+  var vendors = Map.empty<VendorId, VendorProfile>();
+  var products = Map.empty<Nat, Product>();
+
+  var lastVendorId = 0;
+  var lastProductId = 0;
+  var adminAllowlist = Map.empty<Principal, Bool>();
 
   public type Product = {
     id : ProductId;
@@ -84,12 +97,42 @@ actor {
     name : Text;
   };
 
-  var userProfiles = Map.empty<Principal, UserProfile>();
-  var vendors = Map.empty<VendorId, VendorProfile>();
-  var products = Map.empty<Nat, Product>();
+  // Helper function to check if caller is app owner or admin
+  private func isAppOwnerOrAdmin(caller : Principal) : Bool {
+    let isOwner = switch (appOwner) {
+      case (?owner) { caller == owner };
+      case (null) { false };
+    };
+    let isAdminInList = adminAllowlist.containsKey(caller);
+    isOwner or isAdminInList;
+  };
 
-  var lastVendorId = 0;
-  var lastProductId = 0;
+  // System hooks (upgrade support)
+  public query ({ caller }) func ping() : async Bool { true };
+  public query ({ caller }) func whoami() : async Principal { caller };
+
+  // App Owner Management
+  public query ({ caller }) func getAppOwner() : async ?Principal {
+    appOwner;
+  };
+
+  public query ({ caller }) func isCallerAppOwner() : async Bool {
+    switch (appOwner) {
+      case (?owner) { caller == owner };
+      case (null) { false };
+    };
+  };
+
+  public shared ({ caller }) func claimAppOwner() : async () {
+    switch (appOwner) {
+      case (?_) {
+        Runtime.trap("App owner already set. Cannot claim ownership again.");
+      };
+      case (null) {
+        appOwner := ?caller;
+      };
+    };
+  };
 
   // User Profile Management (Required by frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
@@ -390,20 +433,109 @@ actor {
     ).toArray();
   };
 
-  system func preupgrade() {
-    Debug.print("[preupgrade] Start preupgrade, preparing stable state...");
-    Debug.print(
-      "[preupgrade] Storing vendors, products, lastVendorId: " # lastVendorId.toText() # ", lastProductId: " # lastProductId.toText()
-    );
-    Debug.print("[preupgrade] Preupgrade completed.");
+  // ======= ADMIN MANAGEMENT =======
+  // The adminAllowlist is the persistent source of truth for admin principals.
+  // All admin operations must update both the allowlist AND the AccessControl state.
+
+  /// Helper function to sync admin role in AccessControl state
+  private func syncAdminRole(principal : Principal, isAdmin : Bool) {
+    if (isAdmin) {
+      Auth.assignRole(accessControlState, principal, principal, #admin);
+    };
+    // Note: AccessControl module doesn't provide a way to remove roles,
+    // so we can only add admins to the AccessControl state.
+    // The adminAllowlist remains the authoritative source.
   };
 
-  system func postupgrade() {
-    if (lastVendorId == 0 and lastProductId == 0) {
-      lastVendorId := vendors.size();
-      lastProductId := products.size();
-      Debug.print("[postupgrade] Migrated to stable storage. lastVendorId: " # lastVendorId.toText() # ", lastProductId: " # lastProductId.toText());
+  /// Internal check (needed for bootstrap).
+  public shared ({ caller }) func isAdminInternal(principal : Principal) : async Bool {
+    adminAllowlist.containsKey(principal);
+  };
+
+  /// Public check (for canister to canister or frontend).
+  public query ({ caller }) func isAdmin(principal : Principal) : async Bool {
+    adminAllowlist.containsKey(principal);
+  };
+
+  /// Get all admin principals (guarded - app owner or admin only).
+  public query ({ caller }) func getAdmins() : async [Principal] {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can view all admin profiles");
+    };
+    adminAllowlist.keys().toArray();
+  };
+
+  /// Set the complete admin list (guarded - app owner or admin only).
+  public shared ({ caller }) func setAdmins(admins : [Principal]) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can set admin list");
+    };
+
+    if (admins.size() == 0) {
+      Runtime.trap("Must provide at least one admin: Cannot have empty admin list");
+    };
+
+    adminAllowlist.clear();
+    for (admin in admins.values()) {
+      adminAllowlist.add(admin, true);
+      syncAdminRole(admin, true);
+    };
+  };
+
+  /// Add a new admin (guarded - app owner or admin only).
+  public shared ({ caller }) func addAdmin(adminPrincipal : Principal) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can add new admin");
+    };
+
+    adminAllowlist.add(adminPrincipal, true);
+    syncAdminRole(adminPrincipal, true);
+  };
+
+  /// Remove an admin (guarded - app owner or admin only).
+  public shared ({ caller }) func removeAdmin(adminPrincipal : Principal) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can remove admin");
+    };
+    
+    // Prevent removing the last admin
+    if (adminAllowlist.size() == 1 and adminAllowlist.containsKey(adminPrincipal)) {
+      Runtime.trap("Cannot remove the last admin");
+    };
+    
+    switch (adminAllowlist.get(adminPrincipal)) {
+      case (null) { Runtime.trap("Principal not in admin list") };
+      case (?_) { 
+        adminAllowlist.remove(adminPrincipal);
+        // Note: We cannot remove the role from AccessControl state,
+        // but the adminAllowlist check takes precedence in all admin operations
+      };
+    };
+  };
+
+  /// Bootstrap first admin when list is empty (no authorization required).
+  public shared ({ caller }) func bootstrapFirstAdmin() : async () {
+    if (not adminAllowlist.isEmpty()) {
+      Runtime.trap("Admin already exists in canister. Use addAdmin instead.");
+    };
+
+    adminAllowlist.add(caller, true);
+    syncAdminRole(caller, true);
+  };
+
+  /// Bootstrap multiple admins when list is empty (no authorization required).
+  public shared ({ caller }) func bootstrapAdmins(principals : [Principal]) : async () {
+    if (not adminAllowlist.isEmpty()) {
+      Runtime.trap("Admin list not empty. Use setAdmins instead.");
+    };
+
+    if (principals.size() == 0) {
+      Runtime.trap("Must provide at least one admin principal");
+    };
+
+    for (principal in principals.values()) {
+      adminAllowlist.add(principal, true);
+      syncAdminRole(principal, true);
     };
   };
 };
-

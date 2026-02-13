@@ -1,4 +1,65 @@
 {
   "kind": "feature_evidence_report",
-  "features": []
+  "features": [
+    {
+      "featureId": "feature-update-the-frontend-admin-gating-and-ui-so-the-app-owner-creator-can-access-admin-only-flows-needed-for-allowlist-management-this-includes-1-adding-react-query-hooks-in-frontend-src-hooks-usemarketplacequeries-ts-for-reading-app-owner-state-and-checking-whether-the-caller-is-the-app-owner-2-updating-frontend-src-components-auth-requireadmin-tsx-to-allow-access-when-the-caller-is-either-an-admin-or-the-app-owner-and-3-updating-user-facing-copy-to-reflect-admin-or-app-owner-required-where-relevant",
+      "featureTitle": "Update the frontend admin gating and UI so the App Owner/Creator can access admin-only flows needed for allowlist management. This includes: (1) adding React Query hooks in frontend/src/hooks/useMarketplaceQueries.ts for reading app owner state and checking whether the caller is the app owner, (2) updating frontend/src/components/auth/RequireAdmin.tsx to allow access when the caller is either an admin or the app owner, and (3) updating user-facing copy to reflect “Admin or App Owner required” where relevant.",
+      "files": [
+        "frontend/src/components/auth/RequireAdmin.tsx",
+        "frontend/src/components/layout/HeaderNav.tsx",
+        "frontend/src/hooks/useMarketplaceQueries.ts",
+        "frontend/src/pages/RoleSelectPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-104"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-refine-the-admin-dashboard-admin-assignment-section-frontend-src-pages-adminplaceholderpage-tsx-to-explicitly-support-the-app-owner-creator-concept-show-the-current-app-owner-principal-or-not-set-show-whether-the-signed-in-user-is-the-app-owner-and-provide-a-claim-app-owner-action-only-when-the-app-owner-is-not-set-the-existing-admin-allowlist-management-ui-must-remain-available-to-admins-and-must-also-be-available-to-the-app-owner",
+      "featureTitle": "Refine the Admin Dashboard admin assignment section (frontend/src/pages/AdminPlaceholderPage.tsx) to explicitly support the App Owner/Creator concept: show the current app owner principal (or “Not set”), show whether the signed-in user is the app owner, and provide a “Claim App Owner” action only when the app owner is not set. The existing admin allowlist management UI must remain available to admins, and must also be available to the app owner.",
+      "files": [
+        "frontend/src/pages/AdminPlaceholderPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-105"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-clear-ui-messaging-addressing-end-to-end-user-handling-as-a-later-phase-provide-a-small-users-planned-section-in-the-admin-dashboard-explaining-that-broader-user-lifecycle-management-beyond-the-current-minimal-internet-identity-login-basic-user-profile-support-will-be-addressed-in-a-later-phase-without-implementing-full-user-management-in-this-change",
+      "featureTitle": "Add clear UI messaging addressing end-to-end “user” handling as a later phase: provide a small “Users (Planned)” section in the Admin Dashboard explaining that broader user lifecycle/management beyond the current minimal Internet Identity login + basic user profile support will be addressed in a later phase, without implementing full user management in this change.",
+      "files": [
+        "frontend/src/pages/AdminPlaceholderPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-106"
+      ],
+      "confidence": "high"
+    }
+  ]
 }

@@ -1,58 +1,63 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T20:38:13.551Z",
-  "summary": "Diff adds a migration module and wires it into backend/main.mo, but does not provide evidence of stable persistence (stable vars + preupgrade/postupgrade round-trip) for the full backend state. The added migration is a no-op and appears to omit required state (e.g., access control state, metadata), so upgrade-safety and diagnostics requirements are not demonstrably met from the diff summary.",
+  "generatedAt": "2026-02-13T23:41:38.409Z",
+  "summary": "Diff implements the core “App Owner / Creator” concept in the backend (state variable + query methods + one-time claim) and updates frontend gating to allow Admin OR App Owner (RequireAdmin, HeaderNav, RoleSelect, Admin dashboard). However, the diff evidence is insufficient to confirm upgrade-stable persistence for appOwner and that all admin-allowlist management APIs now authorize via (admin OR app owner). The required new React Query hooks for app owner are referenced by imports/usage, but their actual implementation is not visible in the truncated hook file excerpt.",
   "missing_requirements": [
     {
-      "id": "REQ-83",
-      "requirement": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss (including accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId, and any backend metadata needed for normal operation).",
-      "reason": "In the shown backend/main.mo snippet, state is still held in non-stable `var` Maps/counters, and there is no evidence of `system func preupgrade`/`postupgrade` implementing serialization/restore to stable storage. No stable storage structure is shown for accessControlState or metadata.",
+      "id": "REQ-102",
+      "requirement": "Backend stores an app owner/creator principal in canister state that survives upgrades.",
+      "reason": "The diff shows `var appOwner : ?Principal = null;` but does not show any `stable` storage for appOwner or any preupgrade/postupgrade handling that would persist it across upgrades (and the file is truncated before any upgrade hooks).",
       "evidence": [
         "backend/main.mo"
       ]
     },
     {
-      "id": "REQ-84",
-      "requirement": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy; migration logic (if present) is idempotent and preserves vendors/products/userProfiles/counters/access control.",
-      "reason": "A migration module exists but appears to be a no-op (`run` returns `old`) and its Old/New actor types do not include `accessControlState` or backend metadata. There is no evidence of any logic that bridges from prior in-memory state to the new stable persistence representation, nor any handling of access control state.",
+      "id": "REQ-103",
+      "requirement": "All admin allowlist management APIs (list/add/remove/set/bootstrap helpers) must authorize callers who are either in the admin allowlist OR the app owner, and reject others with a clear English unauthorized error message (while preserving safety constraints like not removing the last admin).",
+      "reason": "A helper `isAppOwnerOrAdmin` is added, but the diff excerpt does not show it being applied to the admin allowlist management methods (listing admins, adding, removing, bootstrap/set helpers), nor does it show the updated unauthorized trap messages and last-admin safety behavior for those endpoints.",
       "evidence": [
-        "backend/migration.mo",
         "backend/main.mo"
       ]
     },
     {
-      "id": "REQ-85",
-      "requirement": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without exposing sensitive data.",
-      "reason": "No evidence of upgrade-hook logging (counts/version/counters) is shown. While Debug is imported, the diff summary does not show any upgrade-related logs in preupgrade/postupgrade or migration.",
+      "id": "REQ-104",
+      "requirement": "Add React Query hooks in frontend/src/hooks/useMarketplaceQueries.ts to fetch the current app owner and whether the caller is the app owner, wired to real backend methods.",
+      "reason": "Other files import and use `useGetAppOwner`, `useIsCallerAppOwner`, and `useClaimAppOwner`, but the provided excerpt of useMarketplaceQueries.ts is truncated and does not show these hooks being implemented/wired to backend methods.",
       "evidence": [
-        "backend/main.mo",
-        "backend/migration.mo"
-      ]
-    },
-    {
-      "id": "REQ-86",
-      "requirement": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (counts and counters match reality) and remains admin-gated.",
-      "reason": "Although an `UpgradeSummary` type is present, the diff summary does not show an implementation of `getUpgradeSummary`, nor evidence it reads from persisted (stable) state post-upgrade or that admin-gating behavior is preserved.",
-      "evidence": [
-        "backend/main.mo"
+        "frontend/src/hooks/useMarketplaceQueries.ts",
+        "frontend/src/components/auth/RequireAdmin.tsx",
+        "frontend/src/pages/AdminPlaceholderPage.tsx",
+        "frontend/src/components/layout/HeaderNav.tsx",
+        "frontend/src/pages/RoleSelectPage.tsx"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Added backend/migration.mo module and wired migration into backend/main.mo.",
-      "reason": "REQ-84 requires migration.mo only if mandated by the platform’s conditional migration policy. The diff shows migration.mo added unconditionally, but the diff provides no evidence that the platform policy requires it in this case.",
+      "description": "Extended admin/app-owner authorization UX in the header navigation (show/hide/disable Admin link with tooltip) beyond the explicitly requested RequireAdmin gating and Admin Dashboard changes.",
+      "reason": "REQ-104 only specifies updating RequireAdmin and adding hooks/copy; it does not request modifying HeaderNav behavior.",
       "evidence": [
-        "backend/migration.mo",
-        "backend/main.mo"
+        "frontend/src/components/layout/HeaderNav.tsx"
+      ]
+    },
+    {
+      "description": "Role selection page updated to gate the Admin role card based on Admin OR App Owner authorization status.",
+      "reason": "REQ-104/REQ-105 focus on RequireAdmin gating and Admin Dashboard; RoleSelectPage changes are not requested explicitly.",
+      "evidence": [
+        "frontend/src/pages/RoleSelectPage.tsx"
       ]
     }
   ],
   "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
-    "backend/migration.mo",
+    "frontend-file-summaries.txt",
+    "frontend/src/components/auth/RequireAdmin.tsx",
+    "frontend/src/components/layout/HeaderNav.tsx",
+    "frontend/src/hooks/useMarketplaceQueries.ts",
+    "frontend/src/pages/AdminPlaceholderPage.tsx",
+    "frontend/src/pages/RoleSelectPage.tsx",
     "project_state.json"
   ]
 }

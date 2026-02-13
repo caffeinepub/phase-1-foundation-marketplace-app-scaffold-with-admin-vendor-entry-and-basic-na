@@ -293,3 +293,118 @@ export function useUpgradeSummary() {
     retry: false,
   });
 }
+
+// Admin: Get all admins
+export function useGetAdmins() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Principal[]>({
+    queryKey: ['admins'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.getAdmins();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+// Admin: Add admin
+export function useAddAdmin() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (adminPrincipal: Principal) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.addAdmin(adminPrincipal);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
+      queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
+    },
+  });
+}
+
+// Admin: Remove admin
+export function useRemoveAdmin() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (adminPrincipal: Principal) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.removeAdmin(adminPrincipal);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
+      queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
+    },
+  });
+}
+
+// Admin: Bootstrap first admin (claim initial admin when no admins exist)
+export function useBootstrapFirstAdmin() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.bootstrapFirstAdmin();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admins'] });
+      queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ['allVendorProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['upgradeSummary'] });
+    },
+  });
+}
+
+// App Owner: Get current app owner
+export function useGetAppOwner() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Principal | null>({
+    queryKey: ['appOwner'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.getAppOwner();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+// App Owner: Check if caller is app owner
+export function useIsCallerAppOwner() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerAppOwner'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.isCallerAppOwner();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+// App Owner: Claim app owner (one-time only)
+export function useClaimAppOwner() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.claimAppOwner();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appOwner'] });
+      queryClient.invalidateQueries({ queryKey: ['isCallerAppOwner'] });
+    },
+  });
+}

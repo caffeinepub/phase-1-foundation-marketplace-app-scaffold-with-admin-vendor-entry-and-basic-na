@@ -54,14 +54,32 @@ export interface VendorProfile {
 export type Version = string;
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  /**
+   * / Add a new admin (guarded - app owner or admin only).
+   */
+  'addAdmin' : ActorMethod<[Principal], undefined>,
   'addVendorProfile' : ActorMethod<[VendorProfile], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  /**
+   * / Bootstrap multiple admins when list is empty (no authorization required).
+   */
+  'bootstrapAdmins' : ActorMethod<[Array<Principal>], undefined>,
+  /**
+   * / Bootstrap first admin when list is empty (no authorization required).
+   */
+  'bootstrapFirstAdmin' : ActorMethod<[], undefined>,
+  'claimAppOwner' : ActorMethod<[], undefined>,
   'createProduct' : ActorMethod<
     [string, string, bigint, string, string, string, boolean],
     ProductId
   >,
   'createVendorProfile' : ActorMethod<[string, string], VendorId>,
+  /**
+   * / Get all admin principals (guarded - app owner or admin only).
+   */
+  'getAdmins' : ActorMethod<[], Array<Principal>>,
   'getAllVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
+  'getAppOwner' : ActorMethod<[], [] | [Principal]>,
   'getBackendMetadata' : ActorMethod<[], BackendMetadata>,
   'getCallerProducts' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
@@ -77,11 +95,28 @@ export interface _SERVICE {
   'getVendorProfile' : ActorMethod<[VendorId], [] | [VendorProfile]>,
   'getVendorProfileByUser' : ActorMethod<[Principal], [] | [VendorProfile]>,
   'getVerifiedVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
+  /**
+   * / Public check (for canister to canister or frontend).
+   */
+  'isAdmin' : ActorMethod<[Principal], boolean>,
+  /**
+   * / Internal check (needed for bootstrap).
+   */
+  'isAdminInternal' : ActorMethod<[Principal], boolean>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'isCallerAppOwner' : ActorMethod<[], boolean>,
   'listPublishedProductsByVendor' : ActorMethod<[Principal], Array<Product>>,
   'listVerifiedVendors' : ActorMethod<[], Array<VendorProfile>>,
   'ping' : ActorMethod<[], boolean>,
+  /**
+   * / Remove an admin (guarded - app owner or admin only).
+   */
+  'removeAdmin' : ActorMethod<[Principal], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  /**
+   * / Set the complete admin list (guarded - app owner or admin only).
+   */
+  'setAdmins' : ActorMethod<[Array<Principal>], undefined>,
   'updateProduct' : ActorMethod<
     [ProductId, string, string, bigint, string, string, string, boolean],
     undefined

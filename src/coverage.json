@@ -1,55 +1,85 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T20:38:13.554Z",
+  "generatedAt": "2026-02-13T23:41:38.413Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 4,
-    "implemented": 0,
+    "total": 5,
+    "implemented": 3,
     "items": [
       {
-        "id": "REQ-83",
-        "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss (including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId, and any backend metadata needed for normal operation).",
+        "id": "REQ-102",
+        "summary": "Add a persistent “App Owner / Creator” principal to the Motoko backend and treat it as a super-admin for admin-allowlist management (bootstrap and recovery). The backend must (1) store an optional appOwner principal, (2) expose query APIs to read the appOwner and check if the caller is the appOwner, and (3) expose a one-time shared API that lets an authenticated caller claim appOwner only when no appOwner has been set yet.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-84",
-        "summary": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
+        "id": "REQ-103",
+        "summary": "Update backend authorization rules so that admin allowlist management can be performed by either (a) any principal currently in the admin allowlist OR (b) the app owner/creator principal. This must apply to all admin allowlist management APIs (listing admins, adding admins, removing admins, and any “set admins”/bootstrap helpers that are used for allowlist management).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-85",
-        "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-104",
+        "summary": "Update the frontend admin gating and UI so the App Owner/Creator can access admin-only flows needed for allowlist management. This includes: (1) adding React Query hooks in frontend/src/hooks/useMarketplaceQueries.ts for reading app owner state and checking whether the caller is the app owner, (2) updating frontend/src/components/auth/RequireAdmin.tsx to allow access when the caller is either an admin or the app owner, and (3) updating user-facing copy to reflect “Admin or App Owner required” where relevant.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/hooks/useMarketplaceQueries.ts",
+          "frontend/src/components/auth/RequireAdmin.tsx",
+          "frontend/src/components/layout/HeaderNav.tsx",
+          "frontend/src/pages/RoleSelectPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/hooks/useMarketplaceQueries.ts",
+          "frontend/src/components/auth/RequireAdmin.tsx",
+          "frontend/src/components/layout/HeaderNav.tsx",
+          "frontend/src/pages/RoleSelectPage.tsx"
+        ]
       },
       {
-        "id": "REQ-86",
-        "summary": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (counts and counters match reality) so the Admin Dashboard upgrade verification UI can be used to validate upgrade preservation before vs. after deployments.",
-        "status": "unknown",
-        "plannedFiles": [],
-        "matchedFiles": []
+        "id": "REQ-105",
+        "summary": "Refine the Admin Dashboard admin assignment section (frontend/src/pages/AdminPlaceholderPage.tsx) to explicitly support the App Owner/Creator concept: show the current app owner principal (or “Not set”), show whether the signed-in user is the app owner, and provide a “Claim App Owner” action only when the app owner is not set. The existing admin allowlist management UI must remain available to admins, and must also be available to the app owner.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminPlaceholderPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminPlaceholderPage.tsx"
+        ]
+      },
+      {
+        "id": "REQ-106",
+        "summary": "Add clear UI messaging addressing end-to-end “user” handling as a later phase: provide a small “Users (Planned)” section in the Admin Dashboard explaining that broader user lifecycle/management beyond the current minimal Internet Identity login + basic user profile support will be addressed in a later phase, without implementing full user management in this change.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/AdminPlaceholderPage.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/AdminPlaceholderPage.tsx"
+        ]
       }
     ]
   },
   "changedFiles": [
     "backend/main.mo",
-    "backend/migration.mo",
     "build-request.json",
     "feature_evidence.json",
+    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
+    "frontend/src/components/auth/RequireAdmin.tsx",
+    "frontend/src/components/layout/HeaderNav.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useMarketplaceQueries.ts",
+    "frontend/src/pages/AdminPlaceholderPage.tsx",
+    "frontend/src/pages/RoleSelectPage.tsx",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",
