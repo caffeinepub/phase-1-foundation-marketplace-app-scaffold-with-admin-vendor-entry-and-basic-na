@@ -1,0 +1,134 @@
+{
+  "kind": "build_request",
+  "title": "Phase 2: Implement real vendor onboarding + product listings (replace placeholders)",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-6",
+      "text": "Implement Phase 2 backend data models and APIs for vendor profiles and product listings, persisted in the single Motoko actor.",
+      "target": "backend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "move on to Phase 2 next"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Backend exposes Candid methods to: (1) get and upsert the caller's vendor profile, (2) create a product owned by the caller, (3) update a product owned by the caller, (4) list products for public browsing, (5) list products owned by the caller, (6) get a product by id.",
+        "Product records include at minimum: id, ownerPrincipal, title, description, price (as Nat), currency (as Text, e.g. \"USD\"), optional imageUrl (Text), category (Text or optional), isPublished (Bool), createdAt/updatedAt timestamps (Int).",
+        "Vendor profile includes at minimum: ownerPrincipal, displayName, optional description, optional logoUrl (Text), and createdAt/updatedAt timestamps.",
+        "Authorization rules enforced: only the product owner can update their products; only the caller can upsert their own vendor profile.",
+        "Public product listing returns only products where isPublished = true.",
+        "All Motoko logic remains in backend/main.mo (single-actor architecture)."
+      ]
+    },
+    {
+      "id": "REQ-7",
+      "text": "Update the frontend to replace Phase 1 placeholder UI with Phase 2 product browsing: a real public products list page backed by the new backend APIs, including basic search and filtering.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "move on to Phase 2 next"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The /products page loads products from the backend and renders them in a responsive list/grid using existing shadcn UI components.",
+        "The page provides at least: (1) text search by title/description, and (2) a simple category filter; filtering can be client-side based on the fetched dataset.",
+        "Loading, empty, and error states are implemented (use existing skeleton/alert patterns).",
+        "The existing Phase 1 placeholder text on the public products page is removed or clearly replaced with real Phase 2 functionality.",
+        "No changes are made to any frontend immutablePaths."
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "text": "Add a public product detail page route and UI that shows a single product’s information and its vendor display name (when available).",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "move on to Phase 2 next"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A new route is added for product details (e.g., /products/$productId) using the existing TanStack Router setup in frontend/src/App.tsx.",
+        "From the public products list, users can navigate to a product detail page.",
+        "The product detail page fetches the product by id from the backend and displays: title, description, price+currency, category, and image (if imageUrl is present).",
+        "If vendor profile data is available (via backend API), the UI displays the vendor display name for the product owner.",
+        "Loading/error states are handled."
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "text": "Implement Phase 2 vendor onboarding/profile management in the vendor area, replacing the Phase 1 placeholder with real vendor profile CRUD for the signed-in vendor.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "move on to Phase 2 next"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Within the /vendor area, provide a vendor profile screen that allows the signed-in vendor to view and edit their profile fields (display name required; description/logoUrl optional).",
+        "The vendor profile form saves to the backend and shows success/error feedback.",
+        "The vendor pages remain protected by RequireAuth and RequireRoleMode requiredMode=\"vendor\" as in the current routing/guard approach.",
+        "Phase 1 placeholder content on the vendor page is removed or clearly superseded by the Phase 2 screens."
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "text": "Implement Phase 2 vendor product management in the vendor area: create, edit, publish/unpublish, and list the signed-in vendor’s products.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-3"
+        ],
+        "quotes": [
+          "move on to Phase 2 next"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A vendor products screen exists under the vendor area that lists the caller’s products from the backend.",
+        "Vendors can create a new product and edit an existing product via a form with at least: title, description, price, currency, category, imageUrl, and isPublished toggle.",
+        "Only the signed-in vendor’s own products are visible/editable in vendor management views.",
+        "After create/update, the list refreshes via React Query invalidation/refetch patterns (consistent with existing query hooks).",
+        "User-facing text is in English."
+      ]
+    }
+  ],
+  "constraints": [
+    "Respect single-actor backend architecture: all Motoko logic lives in backend/main.mo.",
+    "Do not edit files under frontend immutablePaths (compose existing components/hooks instead).",
+    "Keep Phase 2 scoped to vendor onboarding + product listings; do not introduce unrelated systems."
+  ],
+  "nonGoals": [
+    "Payments or checkout flows.",
+    "Order management and fulfillment.",
+    "Advanced roles/permissions matrix beyond the existing admin/vendor mode selection.",
+    "Admin vendor approval, moderation, analytics dashboards.",
+    "Real-time features (websockets/chat/notifications).",
+    "Third-party authentication beyond Internet Identity."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
+  }
+}

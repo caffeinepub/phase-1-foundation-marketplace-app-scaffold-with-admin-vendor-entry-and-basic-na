@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectStateVersion": 5,
+  "summary": "Proceeding from Phase 1 MVP foundation to Phase 2 of the multi-vendor marketplace on ICP/Caffeine.",
+  "architectural_notes": [
+    "Target stack: ICP/Caffeine with single Motoko backend canister + React frontend canister.",
+    "Auth via Internet Identity for admin and vendors.",
+    "Phase-1/early MVP scope explicitly excludes payments, DAOs, advanced dashboards/analytics, complex roles/permissions, and multi-organization until later phases."
+  ],
+  "known_issues": [
+    "Caffeine build/generation attempts have failed previously with 'AI was unable to fulfill/implement' errors; may require simplifying prompts or smaller phase-by-phase generation."
+  ],
+  "isFixRequest": false,
+  "existing_features": [
+    {
+      "id": "feature-implement-a-phase-1-scoped-application-shell-for-a-multi-vendor-marketplace-with-two-user-types-admin-and-vendor-explicitly-limiting-functionality-to-foundation-only-no-payments-no-advanced-roles-permissions-system-no-analytics-no-daos-no-multi-organization-support",
+      "title": "Implement a Phase 1 scoped application shell for a multi-vendor marketplace with two user types (Admin and Vendor), explicitly limiting functionality to foundation only (no payments, no advanced roles/permissions system, no analytics, no DAOs, no multi-organization support).",
+      "reqIds": [
+        "REQ-1"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-simple-authentication-entry-flow-using-internet-identity-that-lets-a-signed-in-user-proceed-as-either-an-admin-or-a-vendor-for-phase-1-this-can-be-a-lightweight-selection-step-after-login-no-complex-permission-matrix",
+      "title": "Add a simple authentication entry flow using Internet Identity that lets a signed-in user proceed as either an Admin or a Vendor for Phase 1 (this can be a lightweight selection step after login; no complex permission matrix).",
+      "reqIds": [
+        "REQ-2"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-create-the-initial-page-structure-and-navigation-for-phase-1-with-placeholders-for-later-phases-1-landing-public-page-2-admin-area-placeholder-3-vendor-area-placeholder-4-public-product-listing-placeholder-page-read-only-placeholder-no-real-crud-yet",
+      "title": "Create the initial page structure and navigation for Phase 1 with placeholders for later phases: (1) Landing/Public page, (2) Admin area placeholder, (3) Vendor area placeholder, (4) Public product listing placeholder page (read-only placeholder, no real CRUD yet).",
+      "reqIds": [
+        "REQ-3"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-apply-a-coherent-distinct-visual-theme-colors-typography-spacing-layout-appropriate-for-a-marketplace-foundation-and-use-it-consistently-across-all-phase-1-screens-avoid-blue-purple-as-primary-brand-colors-unless-explicitly-requested-later",
+      "title": "Apply a coherent, distinct visual theme (colors, typography, spacing, layout) appropriate for a marketplace foundation and use it consistently across all Phase 1 screens. Avoid blue/purple as primary brand colors unless explicitly requested later.",
+      "reqIds": [
+        "REQ-5"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-update-the-frontend-to-replace-phase-1-placeholder-ui-with-phase-2-product-browsing-a-real-public-products-list-page-backed-by-the-new-backend-apis-including-basic-search-and-filtering",
+      "title": "Update the frontend to replace Phase 1 placeholder UI with Phase 2 product browsing: a real public products list page backed by the new backend APIs, including basic search and filtering.",
+      "reqIds": [
+        "REQ-7"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-public-product-detail-page-route-and-ui-that-shows-a-single-product-s-information-and-its-vendor-display-name-when-available",
+      "title": "Add a public product detail page route and UI that shows a single product’s information and its vendor display name (when available).",
+      "reqIds": [
+        "REQ-8"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-phase-2-vendor-onboarding-profile-management-in-the-vendor-area-replacing-the-phase-1-placeholder-with-real-vendor-profile-crud-for-the-signed-in-vendor",
+      "title": "Implement Phase 2 vendor onboarding/profile management in the vendor area, replacing the Phase 1 placeholder with real vendor profile CRUD for the signed-in vendor.",
+      "reqIds": [
+        "REQ-9"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-implement-phase-2-vendor-product-management-in-the-vendor-area-create-edit-publish-unpublish-and-list-the-signed-in-vendor-s-products",
+      "title": "Implement Phase 2 vendor product management in the vendor area: create, edit, publish/unpublish, and list the signed-in vendor’s products.",
+      "reqIds": [
+        "REQ-10"
+      ],
+      "version": 1
+    }
+  ],
+  "new_feature_requests": [
+    {
+      "id": "AR-1",
+      "summary": "Phase 1 foundation: initialize marketplace project with two user types (admin, vendor) and scope limited to vendor onboarding + product listings (exclude payments, roles/permissions, analytics, DAOs, and multi-organization for now).",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-5",
+      "summary": "Implement minimal backend health/debug endpoints to validate the frontend↔backend pipeline in Phase 1 (e.g., a ping or getBackendStatus call, plus an authenticated “whoami” returning the caller principal).",
+      "reqIds": [
+        "REQ-4"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-2",
+      "summary": "Begin Phase 2 build/planning for the marketplace after completing the Phase 1 deployed scaffold (define and implement next-scope features beyond placeholders).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-6",
+      "summary": "Implement Phase 2 backend data models and APIs for vendor profiles and product listings, persisted in the single Motoko actor.",
+      "reqIds": [
+        "REQ-6"
+      ],
+      "status": "pending"
+    }
+  ],
+  "projectName": "Phase 1 Foundation: Marketplace app scaffold with Admin/Vendor entry and basic navigation",
+  "clarification_mode": "instant",
+  "clarification_rounds": 0
+}

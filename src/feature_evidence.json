@@ -1,0 +1,92 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-update-the-frontend-to-replace-phase-1-placeholder-ui-with-phase-2-product-browsing-a-real-public-products-list-page-backed-by-the-new-backend-apis-including-basic-search-and-filtering",
+      "featureTitle": "Update the frontend to replace Phase 1 placeholder UI with Phase 2 product browsing: a real public products list page backed by the new backend APIs, including basic search and filtering.",
+      "files": [
+        "frontend/src/hooks/useMarketplaceQueries.ts",
+        "frontend/src/pages/PublicProductsPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-7"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-public-product-detail-page-route-and-ui-that-shows-a-single-product-s-information-and-its-vendor-display-name-when-available",
+      "featureTitle": "Add a public product detail page route and UI that shows a single product’s information and its vendor display name (when available).",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useMarketplaceQueries.ts",
+        "frontend/src/pages/ProductDetailPage.tsx",
+        "frontend/src/pages/PublicProductsPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-8"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-phase-2-vendor-onboarding-profile-management-in-the-vendor-area-replacing-the-phase-1-placeholder-with-real-vendor-profile-crud-for-the-signed-in-vendor",
+      "featureTitle": "Implement Phase 2 vendor onboarding/profile management in the vendor area, replacing the Phase 1 placeholder with real vendor profile CRUD for the signed-in vendor.",
+      "files": [
+        "frontend/src/App.tsx",
+        "frontend/src/hooks/useMarketplaceQueries.ts",
+        "frontend/src/pages/VendorLayoutPage.tsx",
+        "frontend/src/pages/VendorPlaceholderPage.tsx",
+        "frontend/src/pages/VendorProfilePage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-9"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-implement-phase-2-vendor-product-management-in-the-vendor-area-create-edit-publish-unpublish-and-list-the-signed-in-vendor-s-products",
+      "featureTitle": "Implement Phase 2 vendor product management in the vendor area: create, edit, publish/unpublish, and list the signed-in vendor’s products.",
+      "files": [
+        "frontend/src/components/vendor/VendorProductForm.tsx",
+        "frontend/src/hooks/useMarketplaceQueries.ts",
+        "frontend/src/pages/VendorLayoutPage.tsx",
+        "frontend/src/pages/VendorProductsPage.tsx"
+      ],
+      "components": [
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0",
+        "authorization@4.0.0"
+      ],
+      "testIds": [
+        "REQ-10"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

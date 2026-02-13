@@ -1,0 +1,153 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Phase 2 frontend: real product browsing, product details, and vendor onboarding + product management",
+  "requirements": [
+    {
+      "id": "REQ-7",
+      "summary": "Replace the Phase 1 public products placeholder with a real products browsing page backed by Phase 2 backend capabilities, including search + category filtering and robust UI states.",
+      "acceptanceCriteria": [
+        "The /products page loads products from the backend and renders them in a responsive list/grid using existing shadcn UI components.",
+        "The page provides at least: (1) text search by title/description, and (2) a simple category filter; filtering can be client-side based on the fetched dataset.",
+        "Loading, empty, and error states are implemented (use existing skeleton/alert patterns).",
+        "The existing Phase 1 placeholder text on the public products page is removed or clearly replaced with real Phase 2 functionality.",
+        "No changes are made to any frontend immutablePaths."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/PublicProductsPage.tsx",
+          "operation": "modify",
+          "description": "Replace placeholder content with a real public products list UI: fetch published products via React Query, render responsive list/grid, and add client-side search + category filter controls. Use shadcn-ui components (e.g., Card, Input, Select, Skeleton, Alert, Button/Badge) for layout and states. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useMarketplaceQueries.ts",
+          "operation": "create",
+          "description": "Add React Query hooks for Phase 2 marketplace browsing (e.g., fetch published products) built on the existing actor from useActor, with enabled guards for actor readiness and consistent error handling. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Update/extend frontend TypeScript declarations for the backend actor to include the Phase 2 product browsing function(s) and product record types used by /products, so the new hooks/pages are type-safe and compile once backend is updated."
+        }
+      ]
+    },
+    {
+      "id": "REQ-8",
+      "summary": "Add a public product detail route and UI showing a single product’s info plus vendor display name when available.",
+      "acceptanceCriteria": [
+        "A new route is added for product details (e.g., /products/$productId) using the existing TanStack Router setup in frontend/src/App.tsx.",
+        "From the public products list, users can navigate to a product detail page.",
+        "The product detail page fetches the product by id from the backend and displays: title, description, price+currency, category, and image (if imageUrl is present).",
+        "If vendor profile data is available (via backend API), the UI displays the vendor display name for the product owner.",
+        "Loading/error states are handled."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Register a new TanStack Router route for product details under /products (e.g., /products/$productId) and wire it to the new ProductDetailPage so it is navigable. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/ProductDetailPage.tsx",
+          "operation": "create",
+          "description": "Implement product detail UI: fetch product-by-id via React Query and display title, description, price+currency, category, and image when imageUrl is present; also fetch vendor profile for the product owner (when supported) and show vendor display name. Use shadcn-ui components (Card, Skeleton, Alert, Badge) for content and loading/error states. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/PublicProductsPage.tsx",
+          "operation": "modify",
+          "description": "Wire list items to navigate to the new product detail route (e.g., card/link click) using TanStack Router Link so users can open a product detail page from the grid. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useMarketplaceQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks needed for product details (e.g., fetch product by id; optionally fetch vendor profile by owner principal/id if the backend capability exists) with proper enabled conditions and error handling. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Extend backend actor type declarations with the Phase 2 functions/types required for product detail and vendor lookup used by the detail page, keeping names aligned with the backend Candid once implemented."
+        }
+      ]
+    },
+    {
+      "id": "REQ-9",
+      "summary": "Replace the Phase 1 vendor placeholder with real vendor profile onboarding/editing in the protected vendor area.",
+      "acceptanceCriteria": [
+        "Within the /vendor area, provide a vendor profile screen that allows the signed-in vendor to view and edit their profile fields (display name required; description/logoUrl optional).",
+        "The vendor profile form saves to the backend and shows success/error feedback.",
+        "The vendor pages remain protected by RequireAuth and RequireRoleMode requiredMode=\"vendor\" as in the current routing/guard approach.",
+        "Phase 1 placeholder content on the vendor page is removed or clearly superseded by the Phase 2 screens."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/App.tsx",
+          "operation": "modify",
+          "description": "Refactor /vendor routing to render a vendor area layout under the existing RequireAuth + RequireRoleMode(requiredMode=\"vendor\") guard, and wire a vendor profile screen under the /vendor area (either as the default vendor view or as a nested route). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/VendorLayoutPage.tsx",
+          "operation": "create",
+          "description": "Create a vendor area layout that provides navigation between vendor profile and vendor products screens while staying under the existing auth/role guards; use shadcn-ui components (e.g., Tabs or Button links, Card) for the vendor section shell. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/VendorProfilePage.tsx",
+          "operation": "create",
+          "description": "Implement the vendor profile screen: fetch the caller’s vendor profile, display an edit form (display name required; description/logoUrl optional), and upsert/save to backend with success/error feedback. Use shadcn-ui form controls (Input, Textarea, Button, Alert) and consistent loading states (Skeleton). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/VendorPlaceholderPage.tsx",
+          "operation": "delete",
+          "description": "Remove the Phase 1 vendor placeholder page after the /vendor route is rewired to the real Phase 2 vendor area screens, ensuring no orphan imports remain."
+        },
+        {
+          "path": "frontend/src/hooks/useMarketplaceQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks/mutations for vendor profile management (get caller vendor profile; upsert caller vendor profile), including mutation success handlers and query invalidation consistent with existing patterns. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Extend backend actor type declarations with the Phase 2 vendor profile functions/types used by the vendor profile screen (caller-scoped get/upsert) to keep the vendor area type-safe."
+        }
+      ]
+    },
+    {
+      "id": "REQ-10",
+      "summary": "Implement vendor product management in the protected vendor area: list, create, edit, and publish/unpublish the signed-in vendor’s products with React Query invalidation on save.",
+      "acceptanceCriteria": [
+        "A vendor products screen exists under the vendor area that lists the caller’s products from the backend.",
+        "Vendors can create a new product and edit an existing product via a form with at least: title, description, price, currency, category, imageUrl, and isPublished toggle.",
+        "Only the signed-in vendor’s own products are visible/editable in vendor management views.",
+        "After create/update, the list refreshes via React Query invalidation/refetch patterns (consistent with existing query hooks).",
+        "User-facing text is in English."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/pages/VendorProductsPage.tsx",
+          "operation": "create",
+          "description": "Create the vendor products management screen under /vendor: fetch caller-owned products, render a list/table of products, and provide actions to create a new product and edit an existing one. Use shadcn-ui components (Card, Button, Dialog/Drawer, Table, Badge) and handle loading/empty/error states (Skeleton/Alert). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/components/vendor/VendorProductForm.tsx",
+          "operation": "create",
+          "description": "Add a reusable product create/edit form component for vendor management with fields: title, description, price, currency, category, imageUrl, and isPublished toggle. Use shadcn-ui form inputs and Switch, plus validation for required fields and friendly English errors. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/pages/VendorLayoutPage.tsx",
+          "operation": "modify",
+          "description": "Wire vendor navigation to include the new vendor products screen (and ensure it is reachable from the vendor area UI). Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/hooks/useMarketplaceQueries.ts",
+          "operation": "modify",
+          "description": "Add React Query hooks/mutations for vendor products: list caller products, create product, update product (including publish/unpublish via isPublished), and ensure mutations invalidate/refetch the caller-products query on success. Verify the component's usage instructions before implementing."
+        },
+        {
+          "path": "frontend/src/backend.d.ts",
+          "operation": "modify",
+          "description": "Extend backend actor type declarations with the Phase 2 product management functions/types used by vendor product management (caller-owned list, create, update) to keep vendor screens type-safe."
+        }
+      ]
+    }
+  ]
+}
