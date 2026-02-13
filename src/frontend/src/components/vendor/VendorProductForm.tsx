@@ -1,19 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useCreateProduct, useUpdateProduct } from '../../hooks/useMarketplaceQueries';
-import type { Product } from '../../types/marketplace';
+import type { Product } from '../../backend';
 
 interface VendorProductFormProps {
   product?: Product;
-  onSuccess: () => void;
-  onCancel: () => void;
+  onSuccess?: () => void;
+}
+
+interface ProductFormData {
+  title: string;
+  description: string;
+  price: string;
+  currency: string;
+  imageUrl: string;
+  category: string;
+  isPublished: boolean;
 }
 
 const CATEGORIES = [
@@ -25,170 +35,146 @@ const CATEGORIES = [
   'Toys & Games',
   'Health & Beauty',
   'Food & Beverage',
+  'Art & Crafts',
   'Other',
 ];
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
 
-export default function VendorProductForm({ product, onSuccess, onCancel }: VendorProductFormProps) {
-  const createMutation = useCreateProduct();
-  const updateMutation = useUpdateProduct();
+export default function VendorProductForm({ product, onSuccess }: VendorProductFormProps) {
+  const isEditing = !!product;
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const [backendError, setBackendError] = useState<string | null>(null);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [currency, setCurrency] = useState('USD');
-  const [imageUrl, setImageUrl] = useState('');
-  const [category, setCategory] = useState('');
-  const [isPublished, setIsPublished] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<ProductFormData>({
+    defaultValues: {
+      title: product?.title || '',
+      description: product?.description || '',
+      price: product ? (Number(product.price) / 100).toFixed(2) : '',
+      currency: product?.currency || 'USD',
+      imageUrl: product?.imageUrl || '',
+      category: product?.category || '',
+      isPublished: product?.isPublished || false,
+    },
+  });
 
-  useEffect(() => {
-    if (product) {
-      setTitle(product.title);
-      setDescription(product.description);
-      setPrice((Number(product.price) / 100).toString());
-      setCurrency(product.currency);
-      setImageUrl(product.imageUrl);
-      setCategory(product.category);
-      setIsPublished(product.isPublished);
-    }
-  }, [product]);
+  const isPublished = watch('isPublished');
 
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!title.trim()) {
-      newErrors.title = 'Title is required';
-    }
-
-    if (!description.trim()) {
-      newErrors.description = 'Description is required';
-    }
-
-    if (!price || isNaN(Number(price)) || Number(price) <= 0) {
-      newErrors.price = 'Valid price is required';
-    }
-
-    if (!category) {
-      newErrors.category = 'Category is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validate()) {
-      return;
-    }
-
-    const priceInCents = BigInt(Math.round(Number(price) * 100));
-
+  const onSubmit = async (data: ProductFormData) => {
+    setBackendError(null);
+    
     try {
-      if (product) {
-        await updateMutation.mutateAsync({
+      const priceInCents = BigInt(Math.round(parseFloat(data.price) * 100));
+
+      if (isEditing && product) {
+        await updateProduct.mutateAsync({
           productId: product.id,
-          title: title.trim(),
-          description: description.trim(),
+          title: data.title,
+          description: data.description,
           price: priceInCents,
-          currency,
-          imageUrl: imageUrl.trim(),
-          category,
-          isPublished,
+          currency: data.currency,
+          imageUrl: data.imageUrl,
+          category: data.category,
+          isPublished: data.isPublished,
         });
       } else {
-        await createMutation.mutateAsync({
-          title: title.trim(),
-          description: description.trim(),
+        await createProduct.mutateAsync({
+          title: data.title,
+          description: data.description,
           price: priceInCents,
-          currency,
-          imageUrl: imageUrl.trim(),
-          category,
-          isPublished,
+          currency: data.currency,
+          imageUrl: data.imageUrl,
+          category: data.category,
+          isPublished: data.isPublished,
         });
       }
-      onSuccess();
-    } catch (error) {
-      console.error('Failed to save product:', error);
+
+      onSuccess?.();
+    } catch (error: any) {
+      console.error('Product operation error:', error);
+      setBackendError(error.message || 'An error occurred while saving the product');
     }
   };
 
-  const mutation = product ? updateMutation : createMutation;
+  const isPending = createProduct.isPending || updateProduct.isPending;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {mutation.isError && (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {backendError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {mutation.error instanceof Error ? mutation.error.message : 'Failed to save product. Please try again.'}
-          </AlertDescription>
+          <AlertDescription>{backendError}</AlertDescription>
         </Alert>
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="title">
-          Product Title <span className="text-destructive">*</span>
-        </Label>
+        <Label htmlFor="title">Product Title *</Label>
         <Input
           id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          {...register('title', { required: 'Title is required' })}
           placeholder="Enter product title"
+          disabled={isPending}
         />
         {errors.title && (
-          <p className="text-sm text-destructive">{errors.title}</p>
+          <p className="text-sm text-destructive">{errors.title.message}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">
-          Description <span className="text-destructive">*</span>
-        </Label>
+        <Label htmlFor="description">Description *</Label>
         <Textarea
           id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          {...register('description', { required: 'Description is required' })}
           placeholder="Describe your product"
           rows={4}
+          disabled={isPending}
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description}</p>
+          <p className="text-sm text-destructive">{errors.description.message}</p>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="price">
-            Price <span className="text-destructive">*</span>
-          </Label>
+          <Label htmlFor="price">Price *</Label>
           <Input
             id="price"
             type="number"
             step="0.01"
             min="0"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            {...register('price', {
+              required: 'Price is required',
+              min: { value: 0, message: 'Price must be positive' },
+            })}
             placeholder="0.00"
+            disabled={isPending}
           />
           {errors.price && (
-            <p className="text-sm text-destructive">{errors.price}</p>
+            <p className="text-sm text-destructive">{errors.price.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="currency">Currency</Label>
-          <Select value={currency} onValueChange={setCurrency}>
+          <Label htmlFor="currency">Currency *</Label>
+          <Select
+            value={watch('currency')}
+            onValueChange={(value) => setValue('currency', value)}
+            disabled={isPending}
+          >
             <SelectTrigger id="currency">
-              <SelectValue />
+              <SelectValue placeholder="Select currency" />
             </SelectTrigger>
             <SelectContent>
-              {CURRENCIES.map(curr => (
-                <SelectItem key={curr} value={curr}>
-                  {curr}
+              {CURRENCIES.map(currency => (
+                <SelectItem key={currency} value={currency}>
+                  {currency}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -197,55 +183,40 @@ export default function VendorProductForm({ product, onSuccess, onCancel }: Vend
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="category">
-          Category <span className="text-destructive">*</span>
-        </Label>
-        <Select value={category} onValueChange={setCategory}>
+        <Label htmlFor="category">Category *</Label>
+        <Select
+          value={watch('category')}
+          onValueChange={(value) => setValue('category', value)}
+          disabled={isPending}
+        >
           <SelectTrigger id="category">
-            <SelectValue placeholder="Select a category" />
+            <SelectValue placeholder="Select category" />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map(cat => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
+            {CATEGORIES.map(category => (
+              <SelectItem key={category} value={category}>
+                {category}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {errors.category && (
-          <p className="text-sm text-destructive">{errors.category}</p>
+          <p className="text-sm text-destructive">{errors.category.message}</p>
         )}
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="imageUrl">Image URL (optional)</Label>
+        <Label htmlFor="imageUrl">Image URL</Label>
         <Input
           id="imageUrl"
-          type="url"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
+          {...register('imageUrl')}
           placeholder="https://example.com/image.jpg"
+          disabled={isPending}
         />
         <p className="text-sm text-muted-foreground">
-          Provide a URL to your product image
+          Optional: Enter a URL to an image of your product
         </p>
       </div>
-
-      {imageUrl && (
-        <div className="space-y-2">
-          <Label>Image Preview</Label>
-          <div className="border rounded-lg overflow-hidden bg-muted">
-            <img
-              src={imageUrl}
-              alt="Product preview"
-              className="w-full h-48 object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </div>
-        </div>
-      )}
 
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div className="space-y-0.5">
@@ -257,16 +228,15 @@ export default function VendorProductForm({ product, onSuccess, onCancel }: Vend
         <Switch
           id="isPublished"
           checked={isPublished}
-          onCheckedChange={setIsPublished}
+          onCheckedChange={(checked) => setValue('isPublished', checked)}
+          disabled={isPending}
         />
       </div>
 
-      <div className="flex gap-3 justify-end">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Saving...' : product ? 'Update Product' : 'Create Product'}
+      <div className="flex justify-end gap-3">
+        <Button type="submit" disabled={isPending}>
+          {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {isEditing ? 'Update Product' : 'Create Product'}
         </Button>
       </div>
     </form>

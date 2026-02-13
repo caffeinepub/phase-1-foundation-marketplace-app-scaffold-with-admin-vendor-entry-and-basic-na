@@ -1,101 +1,55 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T02:00:48.234Z",
-  "summary": "Phase 2 UI scaffolding for public products, product detail, and vendor dashboard pages/routes was added, along with new React Query hooks and marketplace TS types. However, the backend does not implement the required Phase 2 vendor-profile + product-listing APIs/data models, and multiple frontend hooks still return placeholders (empty arrays/null or thrown errors), meaning the new pages are not actually backed by real backend functionality. Additionally, an admin-only vendor verification flow and vendorId-based vendor model were introduced, which are out of scope per the BuildRequest constraints/non-goals.",
+  "generatedAt": "2026-02-13T07:26:58.977Z",
+  "summary": "Diff adds a new backend/migration.mo and wires Migration.run into backend/main.mo, but does not show any stable storage variables or upgrade hooks (preupgrade/postupgrade) needed to persist/restore state across upgrades. No diagnostics/logging around upgrades are evident. There are also unrelated changes (project_state.json updates and backend version metadata bump) not requested by the BuildRequest.",
   "missing_requirements": [
     {
-      "id": "REQ-6",
-      "requirement": "Implement Phase 2 backend data models and APIs for vendor profiles and product listings in backend/main.mo, including Candid methods: get+upsert caller vendor profile, create product, update product, list published products, list caller products, get product by id; enforce ownership auth; published listing returns only isPublished=true; include required product/vendor fields and timestamps.",
-      "reason": "The diff shows backend/main.mo implements vendor profiles as a separate VendorId-based record (companyName/logoUrl/isVerified) with create/update/get methods, but it does not show any product data model or any of the required product Candid methods. Vendor profile also does not match required fields (displayName/description/createdAt/updatedAt) nor upsert-by-caller semantics. Frontend hooks explicitly indicate backend methods are 'not yet implemented'.",
+      "id": "REQ-50",
+      "requirement": "Persist all marketplace state across canister upgrades by moving in-memory state in backend/main.mo into stable storage (access control state, userProfiles, vendors, products, lastVendorId, lastProductId).",
+      "reason": "The diff shows state is still held in non-stable let/var bindings (e.g., let accessControlState, let userProfiles, let vendors, var lastVendorId). No stable variables or stable serialization structures are shown.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-51",
+      "requirement": "Add system upgrade hooks preupgrade/postupgrade in backend/main.mo that round-trip all persisted state without changing behavior.",
+      "reason": "No `system func preupgrade()` or `system func postupgrade()` are present in the provided backend/main.mo diff content.",
+      "evidence": [
+        "backend/main.mo"
+      ]
+    },
+    {
+      "id": "REQ-53",
+      "requirement": "Add minimal backend-level (non-user-facing) sanity checks/logging around upgrade hooks/migration without introducing new public APIs.",
+      "reason": "No logging/diagnostics statements or sanity checks around upgrade/migration are visible in the diff; upgrade hooks themselves are also not shown.",
       "evidence": [
         "backend/main.mo",
-        "frontend/src/hooks/useMarketplaceQueries.ts"
-      ]
-    },
-    {
-      "id": "REQ-7",
-      "requirement": "Update /products to load products from backend and replace Phase 1 placeholder with real Phase 2 browsing including text search and category filtering plus loading/empty/error states.",
-      "reason": "PublicProductsPage has UI for search/filter and states, but usePublishedProducts() currently returns an empty array with commented-out backend call. The page also includes a 'Phase 2 Development' notice indicating the backend is not available, which suggests the placeholder is not actually replaced by real backend-backed browsing.",
-      "evidence": [
-        "frontend/src/pages/PublicProductsPage.tsx",
-        "frontend/src/hooks/useMarketplaceQueries.ts"
-      ]
-    },
-    {
-      "id": "REQ-8",
-      "requirement": "Add /products/$productId route and UI that fetches product by id from backend and displays product fields and vendor display name (when available), with loading/error states and navigation from list.",
-      "reason": "The route exists in App.tsx and ProductDetailPage UI exists, but useProductById() returns null (backend call commented out). Vendor display name is not wired: vendorId is set to undefined with a comment indicating principal→vendor mapping is missing, so vendor display name cannot be shown.",
-      "evidence": [
-        "frontend/src/App.tsx",
-        "frontend/src/pages/ProductDetailPage.tsx",
-        "frontend/src/hooks/useMarketplaceQueries.ts"
-      ]
-    },
-    {
-      "id": "REQ-9",
-      "requirement": "Implement vendor onboarding/profile management in /vendor area with CRUD for signed-in vendor (display name required; description/logoUrl optional), saving to backend with success/error feedback, replacing placeholder content.",
-      "reason": "VendorProfilePage exists and has a form, but it uses companyName/logoUrl fields (not displayName/description/logoUrl) and the upsert mutation intentionally throws 'Vendor profile management not yet implemented in backend'. The query hook for caller vendor profile returns null (backend call commented out), so real CRUD is not implemented end-to-end.",
-      "evidence": [
-        "frontend/src/pages/VendorProfilePage.tsx",
-        "frontend/src/hooks/useMarketplaceQueries.ts"
-      ]
-    },
-    {
-      "id": "REQ-10",
-      "requirement": "Implement vendor product management under /vendor: list caller’s products from backend; create/edit products including publish toggle; refresh list via React Query invalidation/refetch.",
-      "reason": "VendorProductsPage and VendorProductForm exist, but useCallerProducts() returns an empty array (backend call commented out). The create/update hooks appear to be placeholders (file is truncated, but earlier sections show backend methods not implemented and comments indicate TODO). Therefore, vendor product CRUD and real list refresh via backend are not implemented.",
-      "evidence": [
-        "frontend/src/pages/VendorProductsPage.tsx",
-        "frontend/src/components/vendor/VendorProductForm.tsx",
-        "frontend/src/hooks/useMarketplaceQueries.ts"
+        "backend/migration.mo"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Admin-only vendor verification capability (verifyVendor) and an isVerified flag on vendor profiles.",
-      "reason": "BuildRequest explicitly lists 'Admin vendor approval, moderation, analytics dashboards' as non-goals; adding vendor verification is a form of admin approval/moderation and is outside Phase 2 scope (vendor onboarding + product listings).",
+      "description": "Updated backend metadata version to 2.1.0 (and potentially other non-upgrade-related backend metadata changes).",
+      "reason": "BuildRequest focuses on stable storage and upgrade hooks; it does not request changing backend version metadata.",
       "evidence": [
-        "backend/main.mo",
-        "backend/migration.mo"
-      ]
-    },
-    {
-      "description": "Vendor profile model based on VendorId with create/update/getAll/getById APIs rather than caller-scoped upsert/get, and public listing of all vendor profiles.",
-      "reason": "REQ-6 requires caller-scoped get/upsert for vendor profile (with ownerPrincipal, displayName, optional description/logoUrl, timestamps). The diff introduces a different vendor system (VendorId, createVendorProfile, updateVendorProfile, getAllVendorProfiles) not requested and not aligned with the specified API/fields.",
-      "evidence": [
-        "backend/main.mo",
-        "backend/migration.mo"
-      ]
-    },
-    {
-      "description": "New backend migration module and actor migration wiring.",
-      "reason": "No migration requirement is stated in the BuildRequest; adding migration infrastructure is extra scope and increases risk given the constraint to keep Phase 2 scoped to onboarding + product listings.",
-      "evidence": [
-        "backend/migration.mo",
         "backend/main.mo"
+      ]
+    },
+    {
+      "description": "Modified project_state.json summary/state (Phase 4 to Phase 5 vendor discovery experience).",
+      "reason": "BuildRequest is backend upgrade-persistence work; updating project tracking/state is not requested.",
+      "evidence": [
+        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.78,
+  "confidence": 0.73,
   "changed_files": [
     "backend/main.mo",
     "backend/migration.mo",
-    "frontend-file-summaries.txt",
-    "frontend/src/App.tsx",
-    "frontend/src/components/vendor/VendorProductForm.tsx",
-    "frontend/src/hooks/useActor.ts",
-    "frontend/src/hooks/useMarketplaceQueries.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/ProductDetailPage.tsx",
-    "frontend/src/pages/PublicProductsPage.tsx",
-    "frontend/src/pages/VendorLayoutPage.tsx",
-    "frontend/src/pages/VendorPlaceholderPage.tsx",
-    "frontend/src/pages/VendorProductsPage.tsx",
-    "frontend/src/pages/VendorProfilePage.tsx",
-    "frontend/src/types/marketplace.ts",
-    "frontend/src/utils/urlParams.ts",
     "project_state.json"
   ]
 }

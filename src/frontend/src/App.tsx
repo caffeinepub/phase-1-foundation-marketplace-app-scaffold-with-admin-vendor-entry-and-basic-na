@@ -3,6 +3,8 @@ import { ThemeProvider } from 'next-themes';
 import LandingPage from './pages/LandingPage';
 import PublicProductsPage from './pages/PublicProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
+import VendorsDirectoryPage from './pages/VendorsDirectoryPage';
+import VendorStorefrontPage from './pages/VendorStorefrontPage';
 import AdminPlaceholderPage from './pages/AdminPlaceholderPage';
 import VendorLayoutPage from './pages/VendorLayoutPage';
 import VendorProfilePage from './pages/VendorProfilePage';
@@ -36,6 +38,18 @@ const productDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/products/$productId',
   component: ProductDetailPage,
+});
+
+const vendorsDirectoryRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/vendors',
+  component: VendorsDirectoryPage,
+});
+
+const vendorStorefrontRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/vendors/$vendorId',
+  component: VendorStorefrontPage,
 });
 
 const roleSelectRoute = createRoute({
@@ -102,6 +116,8 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   publicProductsRoute,
   productDetailRoute,
+  vendorsDirectoryRoute,
+  vendorStorefrontRoute,
   roleSelectRoute,
   adminRoute,
   vendorRoute.addChildren([vendorIndexRoute, vendorProfileRoute, vendorProductsRoute]),

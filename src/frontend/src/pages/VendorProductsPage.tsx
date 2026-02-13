@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Package, Plus, Edit, AlertCircle } from 'lucide-react';
 import { useCallerProducts } from '../hooks/useMarketplaceQueries';
 import VendorProductForm from '../components/vendor/VendorProductForm';
-import type { Product } from '../types/marketplace';
+import type { Product } from '../backend';
 
 export default function VendorProductsPage() {
   const { data: products, isLoading, error } = useCallerProducts();
@@ -77,7 +77,6 @@ export default function VendorProductsPage() {
             </DialogHeader>
             <VendorProductForm
               onSuccess={() => setIsCreateDialogOpen(false)}
-              onCancel={() => setIsCreateDialogOpen(false)}
             />
           </DialogContent>
         </Dialog>
@@ -88,8 +87,8 @@ export default function VendorProductsPage() {
           <CardContent className="py-12 text-center">
             <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-lg font-medium mb-2">No products yet</p>
-            <p className="text-muted-foreground mb-4">
-              Create your first product to start selling
+            <p className="text-muted-foreground mb-6">
+              Get started by adding your first product to the marketplace
             </p>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -102,71 +101,74 @@ export default function VendorProductsPage() {
           {products?.map(product => (
             <Card key={product.id.toString()}>
               <CardHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex gap-4 flex-1">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        className="h-20 w-20 rounded-md object-cover"
-                      />
-                    ) : (
-                      <div className="h-20 w-20 rounded-md bg-muted flex items-center justify-center">
-                        <Package className="h-8 w-8 text-muted-foreground" />
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center gap-3">
+                      <CardTitle>{product.title}</CardTitle>
+                      <Badge variant={product.isPublished ? 'default' : 'secondary'}>
+                        {product.isPublished ? 'Published' : 'Draft'}
+                      </Badge>
+                      {product.category && (
+                        <Badge variant="outline">{product.category}</Badge>
+                      )}
+                    </div>
+                    <CardDescription className="line-clamp-2">
+                      {product.description}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Dialog open={editingProduct?.id === product.id} onOpenChange={(open) => {
+                      if (!open) setEditingProduct(null);
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingProduct(product)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Edit Product</DialogTitle>
+                          <DialogDescription>
+                            Update your product details
+                          </DialogDescription>
+                        </DialogHeader>
+                        <VendorProductForm
+                          product={product}
+                          onSuccess={() => setEditingProduct(null)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {product.imageUrl && (
+                      <div className="w-20 h-20 rounded-md overflow-hidden bg-muted">
+                        <img
+                          src={product.imageUrl}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                     )}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-xl">{product.title}</CardTitle>
-                        <div className="flex gap-2">
-                          <Badge variant={product.isPublished ? 'default' : 'secondary'}>
-                            {product.isPublished ? 'Published' : 'Draft'}
-                          </Badge>
-                          {product.category && (
-                            <Badge variant="outline">{product.category}</Badge>
-                          )}
-                        </div>
-                      </div>
-                      <CardDescription className="line-clamp-2">
-                        {product.description}
-                      </CardDescription>
-                      <p className="text-lg font-bold text-primary">
+                    <div>
+                      <p className="text-2xl font-bold text-primary">
                         {formatPrice(product.price, product.currency)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Updated {new Date(Number(product.updatedAt) / 1000000).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <Dialog
-                    open={editingProduct?.id === product.id}
-                    onOpenChange={(open) => {
-                      if (!open) setEditingProduct(null);
-                    }}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingProduct(product)}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Edit Product</DialogTitle>
-                        <DialogDescription>
-                          Update your product information
-                        </DialogDescription>
-                      </DialogHeader>
-                      <VendorProductForm
-                        product={product}
-                        onSuccess={() => setEditingProduct(null)}
-                        onCancel={() => setEditingProduct(null)}
-                      />
-                    </DialogContent>
-                  </Dialog>
                 </div>
-              </CardHeader>
+              </CardContent>
             </Card>
           ))}
         </div>

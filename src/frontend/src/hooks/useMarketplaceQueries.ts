@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { VendorProfile, VendorId } from '../backend';
-import type { Product, ProductId } from '../types/marketplace';
+import type { VendorProfile, VendorId, Product, ProductId } from '../backend';
+import { Principal } from '@dfinity/principal';
 
 // Public product browsing
 export function usePublishedProducts() {
@@ -11,10 +11,7 @@ export function usePublishedProducts() {
     queryKey: ['publishedProducts'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not yet implemented - return empty array
-      // TODO: Uncomment when backend is updated
-      // return actor.getPublishedProducts();
-      return [];
+      return actor.getPublishedProducts();
     },
     enabled: !!actor && !isFetching,
   });
@@ -28,10 +25,7 @@ export function useProductById(productId: ProductId | undefined) {
     queryKey: ['product', productId?.toString()],
     queryFn: async () => {
       if (!actor || !productId) throw new Error('Actor or productId not available');
-      // Backend method not yet implemented - return null
-      // TODO: Uncomment when backend is updated
-      // return actor.getProductById(productId);
-      return null;
+      return actor.getProductById(productId);
     },
     enabled: !!actor && !isFetching && productId !== undefined,
   });
@@ -51,6 +45,50 @@ export function useVendorProfileById(vendorId: VendorId | undefined) {
   });
 }
 
+// Vendor profile by owner principal (for product detail page)
+export function useVendorProfileByUser(owner: Principal | undefined) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<VendorProfile | null>({
+    queryKey: ['vendorProfileByUser', owner?.toString()],
+    queryFn: async () => {
+      if (!actor || !owner) throw new Error('Actor or owner principal not available');
+      return actor.getVendorProfileByUser(owner);
+    },
+    enabled: !!actor && !isFetching && !!owner,
+    retry: false,
+  });
+}
+
+// Phase 5: Public verified vendors list
+export function useVerifiedVendors() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<VendorProfile[]>({
+    queryKey: ['verifiedVendors'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.getVerifiedVendorProfiles();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Phase 5: Vendor's published products by vendor ID
+export function useVendorProducts(vendorId: VendorId | undefined) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Product[]>({
+    queryKey: ['vendorProducts', vendorId?.toString()],
+    queryFn: async () => {
+      if (!actor || vendorId === undefined) throw new Error('Actor or vendorId not available');
+      return actor.getVendorProductsByVendorId(vendorId);
+    },
+    enabled: !!actor && !isFetching && vendorId !== undefined,
+    retry: false,
+  });
+}
+
 // Caller's vendor profile
 export function useCallerVendorProfile() {
   const { actor, isFetching } = useActor();
@@ -59,10 +97,7 @@ export function useCallerVendorProfile() {
     queryKey: ['callerVendorProfile'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not yet implemented - return null
-      // TODO: Uncomment when backend is updated
-      // return actor.getCallerVendorProfile();
-      return null;
+      return actor.getCallerVendorProfile();
     },
     enabled: !!actor && !isFetching,
     retry: false,
@@ -77,10 +112,7 @@ export function useUpsertCallerVendorProfile() {
   return useMutation({
     mutationFn: async ({ companyName, logoUrl }: { companyName: string; logoUrl: string }) => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not yet implemented - throw error
-      // TODO: Uncomment when backend is updated
-      // return actor.upsertCallerVendorProfile(companyName, logoUrl);
-      throw new Error('Vendor profile management not yet implemented in backend');
+      return actor.upsertCallerVendorProfile(companyName, logoUrl);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerVendorProfile'] });
@@ -96,10 +128,7 @@ export function useCallerProducts() {
     queryKey: ['callerProducts'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not yet implemented - return empty array
-      // TODO: Uncomment when backend is updated
-      // return actor.getCallerProducts();
-      return [];
+      return actor.getCallerProducts();
     },
     enabled: !!actor && !isFetching,
   });
@@ -121,18 +150,15 @@ export function useCreateProduct() {
       isPublished: boolean;
     }) => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not yet implemented - throw error
-      // TODO: Uncomment when backend is updated
-      // return actor.createProduct(
-      //   product.title,
-      //   product.description,
-      //   product.price,
-      //   product.currency,
-      //   product.imageUrl,
-      //   product.category,
-      //   product.isPublished
-      // );
-      throw new Error('Product creation not yet implemented in backend');
+      return actor.createProduct(
+        product.title,
+        product.description,
+        product.price,
+        product.currency,
+        product.imageUrl,
+        product.category,
+        product.isPublished
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['callerProducts'] });
@@ -158,24 +184,52 @@ export function useUpdateProduct() {
       isPublished: boolean;
     }) => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not yet implemented - throw error
-      // TODO: Uncomment when backend is updated
-      // return actor.updateProduct(
-      //   product.productId,
-      //   product.title,
-      //   product.description,
-      //   product.price,
-      //   product.currency,
-      //   product.imageUrl,
-      //   product.category,
-      //   product.isPublished
-      // );
-      throw new Error('Product update not yet implemented in backend');
+      return actor.updateProduct(
+        product.productId,
+        product.title,
+        product.description,
+        product.price,
+        product.currency,
+        product.imageUrl,
+        product.category,
+        product.isPublished
+      );
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['callerProducts'] });
       queryClient.invalidateQueries({ queryKey: ['publishedProducts'] });
       queryClient.invalidateQueries({ queryKey: ['product', variables.productId.toString()] });
+    },
+  });
+}
+
+// Admin: Get all vendor profiles
+export function useAllVendorProfiles() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<VendorProfile[]>({
+    queryKey: ['allVendorProfiles'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.getAllVendorProfiles();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Admin: Verify vendor
+export function useVerifyVendor() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (vendorId: VendorId) => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.verifyVendor(vendorId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allVendorProfiles'] });
+      queryClient.invalidateQueries({ queryKey: ['verifiedVendors'] });
     },
   });
 }

@@ -1,16 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { useActor } from './useActor';
+import { useInternetIdentity } from './useInternetIdentity';
 import type { Principal } from '@icp-sdk/core/principal';
+import type { BackendMetadata } from '../backend';
 
 export function useBackendStatus() {
   const { actor, isFetching } = useActor();
 
-  return useQuery<{ version: string; environment: string }>({
+  return useQuery<BackendMetadata>({
     queryKey: ['backendStatus'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not implemented - return placeholder
-      return { version: 'Phase 2', environment: 'development' };
+      return actor.getBackendMetadata();
     },
     enabled: !!actor && !isFetching,
     staleTime: 30000,
@@ -23,27 +24,32 @@ export function useBackendRunning() {
   return useQuery<boolean>({
     queryKey: ['backendRunning'],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
-      // Backend method not implemented - return true if actor exists
-      return true;
+      if (!actor) return false;
+      try {
+        const result = await actor.ping();
+        return result;
+      } catch (error) {
+        // Return false instead of throwing when ping fails
+        return false;
+      }
     },
     enabled: !!actor && !isFetching,
     staleTime: 30000,
+    retry: false,
   });
 }
 
 export function useWhoAmI() {
   const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
 
   return useQuery<Principal>({
     queryKey: ['whoAmI'],
     queryFn: async () => {
       if (!actor) throw new Error('Actor not initialized');
-      // Backend method not implemented - get from actor's caller
-      // This is a placeholder - the actual principal comes from the identity
-      throw new Error('whoAmI not implemented');
+      return actor.whoami();
     },
-    enabled: false, // Disabled until backend implements this
+    enabled: !!actor && !isFetching && !!identity,
     retry: false,
   });
 }

@@ -1,13 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Replace Phase 1 placeholders with real Phase 2 vendor onboarding, vendor product management, and public product browsing backed by new Motoko backend APIs and persisted data models.
+**Goal:** Unblock error-free canister deployment by persisting all marketplace backend state across upgrades with upgrade-safe storage and hooks.
 
 **Planned changes:**
-- Add backend (single Motoko actor) data models and Candid APIs for vendor profiles and product listings, including ownership-based authorization and public-only published product browsing.
-- Update the public `/products` page to fetch and render published products from the backend with basic client-side text search and category filtering, including loading/empty/error states.
-- Add a public product detail route (e.g., `/products/$productId`) that fetches a product by id and displays product fields plus the vendor display name when available.
-- Replace vendor-area placeholders with a protected vendor profile screen to view/edit/save the signed-in vendor’s profile (displayName required; description/logoUrl optional) with success/error feedback.
-- Add protected vendor product management screens to list, create, edit, and publish/unpublish the signed-in vendor’s products, with post-mutation refresh via React Query invalidation/refetch.
+- Move all required backend state from in-memory structures in `backend/main.mo` into stable storage so it survives upgrades (access control state, `userProfiles`, `vendors`, `products`, `lastVendorId`, `lastProductId`).
+- Add `system func preupgrade()` and `system func postupgrade()` in `backend/main.mo` to round-trip all persisted state and restore in-memory structures without changing existing API behavior.
+- Add a conditional migration path to preserve already-deployed in-memory Map-based state when transitioning to stable storage, creating `backend/migration.mo` only if required by the platform migration policy.
+- Add minimal backend-only sanity checks/logging around upgrade hooks/migration for diagnosing upgrade issues without introducing new public APIs or changing user-facing behavior.
 
-**User-visible outcome:** Users can browse a real list of published products, search/filter them, and open product detail pages; signed-in vendors can complete their profile and manage their own product listings (create/edit/publish/unpublish) in the vendor area.
+**User-visible outcome:** After a canister upgrade, previously created vendors, products, and user profiles remain available via existing query methods, with no UX/copy changes.

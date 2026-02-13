@@ -9,18 +9,23 @@ import { Store, CheckCircle, AlertCircle } from 'lucide-react';
 import { useCallerVendorProfile, useUpsertCallerVendorProfile } from '../hooks/useMarketplaceQueries';
 
 export default function VendorProfilePage() {
-  const { data: vendorProfile, isLoading } = useCallerVendorProfile();
+  const { data: vendorProfile, isLoading, isFetched } = useCallerVendorProfile();
   const upsertMutation = useUpsertCallerVendorProfile();
 
   const [companyName, setCompanyName] = useState('');
   const [logoUrl, setLogoUrl] = useState('');
 
+  // Update form state when vendor profile is loaded or changes
   useEffect(() => {
     if (vendorProfile) {
       setCompanyName(vendorProfile.companyName);
       setLogoUrl(vendorProfile.logoUrl);
+    } else if (isFetched && !vendorProfile) {
+      // First-time vendor with no profile - initialize with empty values
+      setCompanyName('');
+      setLogoUrl('');
     }
-  }, [vendorProfile]);
+  }, [vendorProfile, isFetched]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +89,9 @@ export default function VendorProfilePage() {
             <CardTitle>Vendor Profile</CardTitle>
           </div>
           <CardDescription>
-            Manage your store information and branding
+            {vendorProfile 
+              ? 'Manage your store information and branding'
+              : 'Create your vendor profile to start selling'}
           </CardDescription>
         </CardHeader>
         <CardContent>

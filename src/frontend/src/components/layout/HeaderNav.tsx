@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
-import { Store, Package, Shield, User } from 'lucide-react';
+import { Store, Package, Shield, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AuthControls from '../auth/AuthControls';
@@ -13,7 +13,7 @@ export default function HeaderNav() {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
-  const isActive = (path: string) => currentPath === path;
+  const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -27,7 +27,7 @@ export default function HeaderNav() {
             
             <nav className="hidden md:flex items-center gap-1">
               <Button
-                variant={isActive('/') ? 'secondary' : 'ghost'}
+                variant={isActive('/') && currentPath === '/' ? 'secondary' : 'ghost'}
                 size="sm"
                 asChild
               >
@@ -42,6 +42,17 @@ export default function HeaderNav() {
                 <Link to="/products">
                   <Package className="h-4 w-4 mr-2" />
                   Products
+                </Link>
+              </Button>
+
+              <Button
+                variant={isActive('/vendors') ? 'secondary' : 'ghost'}
+                size="sm"
+                asChild
+              >
+                <Link to="/vendors">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Vendors
                 </Link>
               </Button>
 

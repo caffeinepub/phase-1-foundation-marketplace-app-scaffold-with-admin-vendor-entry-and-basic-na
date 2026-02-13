@@ -8,10 +8,11 @@ import { useInternetIdentity } from '../../hooks/useInternetIdentity';
 export default function ConnectionStatusCard() {
   const { identity } = useInternetIdentity();
   const { data: backendStatus, isLoading: statusLoading, error: statusError } = useBackendStatus();
-  const { data: isRunning, isLoading: runningLoading } = useBackendRunning();
+  const { data: isRunning, isLoading: runningLoading, error: runningError } = useBackendRunning();
   const { data: whoAmI, isLoading: whoAmILoading, error: whoAmIError } = useWhoAmI();
 
   const isLoading = statusLoading || runningLoading;
+  const hasError = statusError || runningError;
 
   return (
     <Card>
@@ -30,11 +31,11 @@ export default function ConnectionStatusCard() {
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Checking connection...</span>
           </div>
-        ) : statusError ? (
+        ) : hasError ? (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
             <AlertDescription>
-              Failed to connect to backend: {statusError.message}
+              Failed to connect to backend: {(statusError || runningError)?.message || 'Unknown error'}
             </AlertDescription>
           </Alert>
         ) : (
@@ -64,7 +65,7 @@ export default function ConnectionStatusCard() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Environment</span>
-                  <span className="font-mono">{backendStatus.environment}</span>
+                  <span className="font-mono capitalize">{backendStatus.environment}</span>
                 </div>
               </>
             )}
@@ -84,7 +85,7 @@ export default function ConnectionStatusCard() {
                 ) : whoAmIError ? (
                   <Alert variant="destructive">
                     <AlertDescription className="text-xs">
-                      Authentication check failed
+                      Authentication verification failed: {whoAmIError.message}
                     </AlertDescription>
                   </Alert>
                 ) : whoAmI ? (

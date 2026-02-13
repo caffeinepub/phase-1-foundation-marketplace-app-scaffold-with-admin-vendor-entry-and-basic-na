@@ -13,6 +13,7 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const ProductId = IDL.Nat;
 export const VendorId = IDL.Nat;
 export const VendorProfile = IDL.Record({
   'id' : VendorId,
@@ -21,19 +22,58 @@ export const VendorProfile = IDL.Record({
   'isVerified' : IDL.Bool,
   'companyName' : IDL.Text,
 });
+export const Environment = IDL.Variant({ 'dev' : IDL.Null, 'prod' : IDL.Null });
+export const BackendMetadata = IDL.Record({
+  'version' : IDL.Text,
+  'environment' : Environment,
+});
+export const Timestamp = IDL.Int;
+export const Product = IDL.Record({
+  'id' : ProductId,
+  'title' : IDL.Text,
+  'isPublished' : IDL.Bool,
+  'ownerPrincipal' : IDL.Principal,
+  'createdAt' : Timestamp,
+  'description' : IDL.Text,
+  'updatedAt' : Timestamp,
+  'imageUrl' : IDL.Text,
+  'currency' : IDL.Text,
+  'category' : IDL.Text,
+  'price' : IDL.Nat,
+});
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createProduct' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
+      [ProductId],
+      [],
+    ),
   'createVendorProfile' : IDL.Func([IDL.Text, IDL.Text], [VendorId], []),
   'getAllVendorProfiles' : IDL.Func([], [IDL.Vec(VendorProfile)], ['query']),
+  'getBackendMetadata' : IDL.Func([], [BackendMetadata], ['query']),
+  'getCallerProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getCallerVendorProfile' : IDL.Func([], [IDL.Opt(VendorProfile)], ['query']),
+  'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
+  'getPublishedProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getTotalVendorCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'getVendorProductsByPrincipal' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(Product)],
+      ['query'],
+    ),
+  'getVendorProductsByVendorId' : IDL.Func(
+      [VendorId],
+      [IDL.Vec(Product)],
       ['query'],
     ),
   'getVendorProfile' : IDL.Func(
@@ -41,10 +81,37 @@ export const idlService = IDL.Service({
       [IDL.Opt(VendorProfile)],
       ['query'],
     ),
+  'getVendorProfileByUser' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(VendorProfile)],
+      ['query'],
+    ),
+  'getVerifiedVendorProfiles' : IDL.Func(
+      [],
+      [IDL.Vec(VendorProfile)],
+      ['query'],
+    ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'ping' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'updateProduct' : IDL.Func(
+      [
+        ProductId,
+        IDL.Text,
+        IDL.Text,
+        IDL.Nat,
+        IDL.Text,
+        IDL.Text,
+        IDL.Text,
+        IDL.Bool,
+      ],
+      [],
+      [],
+    ),
   'updateVendorProfile' : IDL.Func([VendorId, IDL.Text, IDL.Text], [], []),
+  'upsertCallerVendorProfile' : IDL.Func([IDL.Text, IDL.Text], [VendorId], []),
   'verifyVendor' : IDL.Func([VendorId], [], []),
+  'whoami' : IDL.Func([], [IDL.Principal], ['query']),
 });
 
 export const idlInitArgs = [];
@@ -55,6 +122,7 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const ProductId = IDL.Nat;
   const VendorId = IDL.Nat;
   const VendorProfile = IDL.Record({
     'id' : VendorId,
@@ -63,19 +131,62 @@ export const idlFactory = ({ IDL }) => {
     'isVerified' : IDL.Bool,
     'companyName' : IDL.Text,
   });
+  const Environment = IDL.Variant({ 'dev' : IDL.Null, 'prod' : IDL.Null });
+  const BackendMetadata = IDL.Record({
+    'version' : IDL.Text,
+    'environment' : Environment,
+  });
+  const Timestamp = IDL.Int;
+  const Product = IDL.Record({
+    'id' : ProductId,
+    'title' : IDL.Text,
+    'isPublished' : IDL.Bool,
+    'ownerPrincipal' : IDL.Principal,
+    'createdAt' : Timestamp,
+    'description' : IDL.Text,
+    'updatedAt' : Timestamp,
+    'imageUrl' : IDL.Text,
+    'currency' : IDL.Text,
+    'category' : IDL.Text,
+    'price' : IDL.Nat,
+  });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createProduct' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
+        [ProductId],
+        [],
+      ),
     'createVendorProfile' : IDL.Func([IDL.Text, IDL.Text], [VendorId], []),
     'getAllVendorProfiles' : IDL.Func([], [IDL.Vec(VendorProfile)], ['query']),
+    'getBackendMetadata' : IDL.Func([], [BackendMetadata], ['query']),
+    'getCallerProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getCallerVendorProfile' : IDL.Func(
+        [],
+        [IDL.Opt(VendorProfile)],
+        ['query'],
+      ),
+    'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
+    'getPublishedProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getTotalVendorCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'getVendorProductsByPrincipal' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(Product)],
+        ['query'],
+      ),
+    'getVendorProductsByVendorId' : IDL.Func(
+        [VendorId],
+        [IDL.Vec(Product)],
         ['query'],
       ),
     'getVendorProfile' : IDL.Func(
@@ -83,10 +194,41 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Opt(VendorProfile)],
         ['query'],
       ),
+    'getVendorProfileByUser' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(VendorProfile)],
+        ['query'],
+      ),
+    'getVerifiedVendorProfiles' : IDL.Func(
+        [],
+        [IDL.Vec(VendorProfile)],
+        ['query'],
+      ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'ping' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'updateProduct' : IDL.Func(
+        [
+          ProductId,
+          IDL.Text,
+          IDL.Text,
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Text,
+          IDL.Bool,
+        ],
+        [],
+        [],
+      ),
     'updateVendorProfile' : IDL.Func([VendorId, IDL.Text, IDL.Text], [], []),
+    'upsertCallerVendorProfile' : IDL.Func(
+        [IDL.Text, IDL.Text],
+        [VendorId],
+        [],
+      ),
     'verifyVendor' : IDL.Func([VendorId], [], []),
+    'whoami' : IDL.Func([], [IDL.Principal], ['query']),
   });
 };
 

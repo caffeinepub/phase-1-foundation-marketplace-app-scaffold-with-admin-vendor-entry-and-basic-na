@@ -10,6 +10,27 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface BackendMetadata {
+  'version' : string,
+  'environment' : Environment,
+}
+export type Environment = { 'dev' : null } |
+  { 'prod' : null };
+export interface Product {
+  'id' : ProductId,
+  'title' : string,
+  'isPublished' : boolean,
+  'ownerPrincipal' : Principal,
+  'createdAt' : Timestamp,
+  'description' : string,
+  'updatedAt' : Timestamp,
+  'imageUrl' : string,
+  'currency' : string,
+  'category' : string,
+  'price' : bigint,
+}
+export type ProductId = bigint;
+export type Timestamp = bigint;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -25,17 +46,37 @@ export interface VendorProfile {
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createProduct' : ActorMethod<
+    [string, string, bigint, string, string, string, boolean],
+    ProductId
+  >,
   'createVendorProfile' : ActorMethod<[string, string], VendorId>,
   'getAllVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
+  'getBackendMetadata' : ActorMethod<[], BackendMetadata>,
+  'getCallerProducts' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getCallerVendorProfile' : ActorMethod<[], [] | [VendorProfile]>,
+  'getProductById' : ActorMethod<[ProductId], [] | [Product]>,
+  'getPublishedProducts' : ActorMethod<[], Array<Product>>,
   'getTotalVendorCount' : ActorMethod<[], bigint>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getVendorProductsByPrincipal' : ActorMethod<[Principal], Array<Product>>,
+  'getVendorProductsByVendorId' : ActorMethod<[VendorId], Array<Product>>,
   'getVendorProfile' : ActorMethod<[VendorId], [] | [VendorProfile]>,
+  'getVendorProfileByUser' : ActorMethod<[Principal], [] | [VendorProfile]>,
+  'getVerifiedVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'ping' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'updateProduct' : ActorMethod<
+    [ProductId, string, string, bigint, string, string, string, boolean],
+    undefined
+  >,
   'updateVendorProfile' : ActorMethod<[VendorId, string, string], undefined>,
+  'upsertCallerVendorProfile' : ActorMethod<[string, string], VendorId>,
   'verifyVendor' : ActorMethod<[VendorId], undefined>,
+  'whoami' : ActorMethod<[], Principal>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

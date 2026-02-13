@@ -1,126 +1,55 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T02:00:48.237Z",
+  "generatedAt": "2026-02-13T07:26:58.980Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 5,
-    "implemented": 4,
+    "total": 4,
+    "implemented": 0,
     "items": [
       {
-        "id": "REQ-10",
-        "summary": "Implement Phase 2 vendor product management in the vendor area: create, edit, publish/unpublish, and list the signed-in vendor’s products.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/VendorProductsPage.tsx",
-          "frontend/src/components/vendor/VendorProductForm.tsx",
-          "frontend/src/pages/VendorLayoutPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/VendorProductsPage.tsx",
-          "frontend/src/components/vendor/VendorProductForm.tsx",
-          "frontend/src/pages/VendorLayoutPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ]
-      },
-      {
-        "id": "REQ-6",
-        "summary": "Implement Phase 2 backend data models and APIs for vendor profiles and product listings, persisted in the single Motoko actor.",
+        "id": "REQ-50",
+        "summary": "Persist all marketplace state across canister upgrades by moving the in-memory state in backend/main.mo into stable storage, including: access control state, userProfiles, vendors, products, lastVendorId, and lastProductId.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-7",
-        "summary": "Update the frontend to replace Phase 1 placeholder UI with Phase 2 product browsing: a real public products list page backed by the new backend APIs, including basic search and filtering.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/pages/PublicProductsPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/pages/PublicProductsPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ]
+        "id": "REQ-51",
+        "summary": "Implement upgrade-safe serialization and restoration for backend state by adding system upgrade hooks in backend/main.mo (preupgrade/postupgrade) that correctly round-trip all persisted state.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
-        "id": "REQ-8",
-        "summary": "Add a public product detail page route and UI that shows a single product’s information and its vendor display name (when available).",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/ProductDetailPage.tsx",
-          "frontend/src/pages/PublicProductsPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/ProductDetailPage.tsx",
-          "frontend/src/pages/PublicProductsPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ]
+        "id": "REQ-52",
+        "summary": "Add a conditional migration path following the platform migration policy to preserve already-deployed in-memory Map-based state when transitioning to stable storage; create backend/migration.mo only if required by the platform policy.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       },
       {
-        "id": "REQ-9",
-        "summary": "Implement Phase 2 vendor onboarding/profile management in the vendor area, replacing the Phase 1 placeholder with real vendor profile CRUD for the signed-in vendor.",
-        "status": "implemented",
-        "plannedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/VendorLayoutPage.tsx",
-          "frontend/src/pages/VendorProfilePage.tsx",
-          "frontend/src/pages/VendorPlaceholderPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ],
-        "matchedFiles": [
-          "frontend/src/App.tsx",
-          "frontend/src/pages/VendorLayoutPage.tsx",
-          "frontend/src/pages/VendorProfilePage.tsx",
-          "frontend/src/pages/VendorPlaceholderPage.tsx",
-          "frontend/src/hooks/useMarketplaceQueries.ts",
-          "frontend/src/backend.d.ts"
-        ]
+        "id": "REQ-53",
+        "summary": "Add minimal backend-level (non-user-facing) sanity checks/logging around upgrade hooks/migration to help diagnose upgrade issues without changing user-facing behavior.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
       }
     ]
   },
   "changedFiles": [
-    "backend/authorization/MixinAuthorization.mo",
-    "backend/authorization/access-control.mo",
     "backend/main.mo",
     "backend/migration.mo",
     "build-request.json",
-    "build-template/README.md",
-    "caffeine.lock.json",
     "feature_evidence.json",
-    "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/App.tsx",
     "frontend/src/backend.d.ts",
     "frontend/src/backend.ts",
-    "frontend/src/components/vendor/VendorProductForm.tsx",
     "frontend/src/declarations/backend.did.d.ts",
     "frontend/src/declarations/backend.did.js",
-    "frontend/src/hooks/useActor.ts",
-    "frontend/src/hooks/useMarketplaceQueries.ts",
-    "frontend/src/hooks/useQueries.ts",
-    "frontend/src/pages/ProductDetailPage.tsx",
-    "frontend/src/pages/PublicProductsPage.tsx",
-    "frontend/src/pages/VendorLayoutPage.tsx",
-    "frontend/src/pages/VendorPlaceholderPage.tsx",
-    "frontend/src/pages/VendorProductsPage.tsx",
-    "frontend/src/pages/VendorProfilePage.tsx",
-    "frontend/src/types/marketplace.ts",
-    "frontend/src/utils/urlParams.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

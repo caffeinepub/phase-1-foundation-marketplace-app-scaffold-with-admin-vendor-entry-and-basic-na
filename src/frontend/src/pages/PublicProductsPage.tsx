@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Package, Search, AlertCircle, Info } from 'lucide-react';
+import { Package, Search, AlertCircle } from 'lucide-react';
 import { usePublishedProducts } from '../hooks/useMarketplaceQueries';
+import { PRODUCT_PLACEHOLDER } from '../utils/placeholders';
 
 export default function PublicProductsPage() {
   const navigate = useNavigate();
@@ -61,14 +62,6 @@ export default function PublicProductsPage() {
             Browse products from our marketplace vendors
           </p>
         </div>
-
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Phase 2 Development:</strong> Product browsing features are being implemented. 
-            The backend product management system will be available soon.
-          </AlertDescription>
-        </Alert>
 
         {/* Search and Filter Controls */}
         <div className="flex flex-col sm:flex-row gap-4">
@@ -150,19 +143,13 @@ export default function PublicProductsPage() {
               >
                 <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50">
                   <CardHeader className="space-y-4">
-                    {product.imageUrl ? (
-                      <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
-                        <img
-                          src={product.imageUrl}
-                          alt={product.title}
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      </div>
-                    ) : (
-                      <div className="aspect-video w-full flex items-center justify-center rounded-md bg-muted">
-                        <Package className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
+                    <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
+                      <img
+                        src={product.imageUrl || PRODUCT_PLACEHOLDER}
+                        alt={product.title}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    </div>
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
