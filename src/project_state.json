@@ -1,18 +1,19 @@
 {
   "schemaVersion": "1.0.0",
-  "projectStateVersion": 35,
+  "projectStateVersion": 57,
   "summary": "Proceeding from Phase 4 to Phase 5 work, starting the vendor discovery experience (public verified vendors directory + vendor storefront support).",
   "architectural_notes": [
     "Target stack: ICP/Caffeine with single Motoko backend canister + React frontend canister.",
     "Auth via Internet Identity for admin and vendors.",
     "Phase-1/early MVP scope explicitly excludes payments, DAOs, advanced dashboards/analytics, complex roles/permissions, and multi-organization until later phases.",
-    "Deployment/upgrade stability: add stable storage + preupgrade/postupgrade (and conditional migration per policy) to ensure upgrade-safe persistence and unblock deployments when backend grows."
+    "Deployment/upgrade stability: add stable storage + preupgrade/postupgrade (and conditional migration per policy) to ensure upgrade-safe persistence and unblock deployments when backend grows.",
+    "Backlog decision: consolidate repeated upgrade-safety/stable-storage AR items into a single implementation pass (stable storage + preupgrade/postupgrade + conditional migration only if required)."
   ],
   "known_issues": [
     "Caffeine build/generation attempts have failed previously with 'AI was unable to fulfill/implement' errors; may require simplifying prompts or smaller phase-by-phase generation.",
     "Deployments may fail at the deployment/upgrade step if the backend state is not in stable storage with proper preupgrade/postupgrade hooks (upgrade-safety/migration required as backend APIs/state evolve)."
   ],
-  "isFixRequest": true,
+  "isFixRequest": false,
   "existing_features": [
     {
       "id": "feature-implement-a-phase-1-scoped-application-shell-for-a-multi-vendor-marketplace-with-two-user-types-admin-and-vendor-explicitly-limiting-functionality-to-foundation-only-no-payments-no-advanced-roles-permissions-system-no-analytics-no-daos-no-multi-organization-support",
@@ -195,6 +196,14 @@
       "title": "Update the Vendors directory and Vendor storefront UIs to use the generated vendor logo placeholder image instead of the generic icon when vendor.logoUrl is missing or empty.",
       "reqIds": [
         "REQ-31"
+      ],
+      "version": 1
+    },
+    {
+      "id": "feature-add-a-minimal-admin-facing-ui-section-to-support-manual-upgrade-verification-by-displaying-the-backend-upgrade-diagnostics-summary-and-short-instructions-for-checking-values-before-vs-after-an-upgrade",
+      "title": "Add a minimal admin-facing UI section to support manual upgrade verification by displaying the backend upgrade diagnostics summary and short instructions for checking values before vs. after an upgrade.",
+      "reqIds": [
+        "REQ-56"
       ],
       "version": 1
     }
@@ -461,6 +470,286 @@
       "summary": "Add minimal backend-level (non-user-facing) sanity checks/logging around upgrade hooks/migration to help diagnose upgrade issues without changing user-facing behavior.",
       "reqIds": [
         "REQ-53"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-39",
+      "summary": "Implement upgrade-safe persistence for all backend state in backend/main.mo by moving the current in-memory state (Maps and counters) into stable storage and adding system preupgrade/postupgrade hooks that round-trip all data without loss.",
+      "reqIds": [
+        "REQ-54"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-40",
+      "summary": "Add a backend upgrade diagnostics query API that exposes a small, non-sensitive state summary for manual verification before and after an upgrade (e.g., counts of vendors/products, and the lastVendorId/lastProductId values). If access control is required, restrict this endpoint to admin mode.",
+      "reqIds": [
+        "REQ-55"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-42",
+      "summary": "If a conditional migration file is required by the platform migration policy for preserving already-deployed state, add or update backend/migration.mo so upgrades preserve existing deployed state when transitioning to stable storage.",
+      "reqIds": [
+        "REQ-57"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-43",
+      "summary": "Phase 5 vendor discovery backend: add public query APIs listVerifiedVendors() and listPublishedProductsByVendor(vendorPrincipal) to support Vendors Directory and Vendor Storefront pages.",
+      "reqIds": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "AR-44",
+      "summary": "Frontend vendor discovery wiring: add React Query hooks for verified vendors + vendor published products and wire them into the Vendors Directory + Vendor Storefront pages (including navigation link).",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-45",
+      "summary": "Consolidated upgrade-safety pass: move all marketplace state (vendors/products/userProfiles/counters/access control as applicable) into stable storage, add preupgrade/postupgrade round-tripping, and add conditional migration.mo only if required by migration policy.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-46",
+      "summary": "Admin upgrade-verification UI: add a minimal admin section/page to display the backend upgrade diagnostics summary and short before/after upgrade verification instructions.",
+      "reqIds": [],
+      "status": "pending"
+    },
+    {
+      "id": "AR-47",
+      "summary": "Add upgrade-safe stable persistence to the Motoko canister so that all marketplace state survives canister upgrades, including: access control state, userProfiles, vendors, products, lastVendorId, and lastProductId.",
+      "reqIds": [
+        "REQ-58"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-48",
+      "summary": "Implement a conditional upgrade migration path (backend/migration.mo only if required by the platform migration policy) to preserve already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation.",
+      "reqIds": [
+        "REQ-59"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-49",
+      "summary": "Add explicit Phase 5 vendor discovery query APIs in backend/main.mo that match the planned naming: (1) listVerifiedVendors() returning verified vendor profiles and (2) listPublishedProductsByVendor(vendorPrincipal) returning published products for a vendor principal; keep the existing vendor discovery APIs intact for backward compatibility.",
+      "reqIds": [
+        "REQ-60"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-50",
+      "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and adding system upgrade hooks that round-trip the full state without data loss (including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId).",
+      "reqIds": [
+        "REQ-61"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-51",
+      "summary": "Add a conditional upgrade migration path following the platform migration policy to preserve already-deployed state when transitioning to the new stable persistence implementation; create backend/migration.mo only if required by the platform migration policy.",
+      "reqIds": [
+        "REQ-62"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-52",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks/migration to help diagnose upgrade issues without changing user-facing behavior.",
+      "reqIds": [
+        "REQ-63"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-53",
+      "summary": "Make all backend marketplace state upgrade-safe by persisting it in stable storage and round-tripping it through system upgrade hooks in backend/main.mo, so canister upgrades do not lose access control, vendor profiles, products, user profiles, or ID counters.",
+      "reqIds": [
+        "REQ-64"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-54",
+      "summary": "If required by the platform's conditional migration policy, add or update backend/migration.mo to preserve already-deployed state when transitioning from the current in-memory Map-based state to the new stable persistence implementation.",
+      "reqIds": [
+        "REQ-65"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-55",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (preupgrade/postupgrade and any migration) to help diagnose upgrade issues without changing user-facing behavior or exposing sensitive data.",
+      "reqIds": [
+        "REQ-66"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-56",
+      "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and adding system upgrade hooks (preupgrade/postupgrade) that round-trip the full state without data loss (including: access control state, userProfiles, vendors, products, lastVendorId, lastProductId).",
+      "reqIds": [
+        "REQ-67"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-57",
+      "summary": "Implement a conditional upgrade migration path that preserves already-deployed state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
+      "reqIds": [
+        "REQ-68"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-58",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks/migration to help diagnose upgrade issues without changing user-facing behavior or exposing sensitive data.",
+      "reqIds": [
+        "REQ-69"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-59",
+      "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and adding system upgrade hooks (preupgrade/postupgrade) that round-trip the full state without data loss (including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId).",
+      "reqIds": [
+        "REQ-70"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-60",
+      "summary": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
+      "reqIds": [
+        "REQ-71"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-61",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
+      "reqIds": [
+        "REQ-72"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-62",
+      "summary": "Persist all backend marketplace state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage, and implement system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss (including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId).",
+      "reqIds": [
+        "REQ-73"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-63",
+      "summary": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
+      "reqIds": [
+        "REQ-74"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-64",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks and any migration logic to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
+      "reqIds": [
+        "REQ-75"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-65",
+      "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that round-trip the full state without data loss, including: accessControlState, userProfiles, vendors, products, lastVendorId, and lastProductId.",
+      "reqIds": [
+        "REQ-76"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-66",
+      "summary": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
+      "reqIds": [
+        "REQ-77"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-67",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks and any migration logic to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
+      "reqIds": [
+        "REQ-78"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-68",
+      "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss, including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId, and any backend metadata needed for normal operation.",
+      "reqIds": [
+        "REQ-79"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-69",
+      "summary": "Implement a conditional upgrade migration path that preserves already-deployed state when transitioning from the current in-memory Map-based state to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
+      "reqIds": [
+        "REQ-80"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-70",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without changing user-facing behavior or exposing sensitive data.",
+      "reqIds": [
+        "REQ-81"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-71",
+      "summary": "Ensure the existing admin-only upgrade diagnostics endpoint (getUpgradeSummary) accurately reflects the persisted state after upgrades (counts and counters match reality) so the Admin Dashboard upgrade verification UI can be used to validate upgrade preservation before vs. after deployments.",
+      "reqIds": [
+        "REQ-82"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-72",
+      "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss (including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId, and any backend metadata needed for normal operation).",
+      "reqIds": [
+        "REQ-83"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-73",
+      "summary": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
+      "reqIds": [
+        "REQ-84"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-74",
+      "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
+      "reqIds": [
+        "REQ-85"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": "AR-75",
+      "summary": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (counts and counters match reality) so the Admin Dashboard upgrade verification UI can be used to validate upgrade preservation before vs. after deployments.",
+      "reqIds": [
+        "REQ-86"
       ],
       "status": "pending"
     }

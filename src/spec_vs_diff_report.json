@@ -1,52 +1,55 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T07:26:58.977Z",
-  "summary": "Diff adds a new backend/migration.mo and wires Migration.run into backend/main.mo, but does not show any stable storage variables or upgrade hooks (preupgrade/postupgrade) needed to persist/restore state across upgrades. No diagnostics/logging around upgrades are evident. There are also unrelated changes (project_state.json updates and backend version metadata bump) not requested by the BuildRequest.",
+  "generatedAt": "2026-02-13T20:38:13.551Z",
+  "summary": "Diff adds a migration module and wires it into backend/main.mo, but does not provide evidence of stable persistence (stable vars + preupgrade/postupgrade round-trip) for the full backend state. The added migration is a no-op and appears to omit required state (e.g., access control state, metadata), so upgrade-safety and diagnostics requirements are not demonstrably met from the diff summary.",
   "missing_requirements": [
     {
-      "id": "REQ-50",
-      "requirement": "Persist all marketplace state across canister upgrades by moving in-memory state in backend/main.mo into stable storage (access control state, userProfiles, vendors, products, lastVendorId, lastProductId).",
-      "reason": "The diff shows state is still held in non-stable let/var bindings (e.g., let accessControlState, let userProfiles, let vendors, var lastVendorId). No stable variables or stable serialization structures are shown.",
+      "id": "REQ-83",
+      "requirement": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss (including accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId, and any backend metadata needed for normal operation).",
+      "reason": "In the shown backend/main.mo snippet, state is still held in non-stable `var` Maps/counters, and there is no evidence of `system func preupgrade`/`postupgrade` implementing serialization/restore to stable storage. No stable storage structure is shown for accessControlState or metadata.",
       "evidence": [
         "backend/main.mo"
       ]
     },
     {
-      "id": "REQ-51",
-      "requirement": "Add system upgrade hooks preupgrade/postupgrade in backend/main.mo that round-trip all persisted state without changing behavior.",
-      "reason": "No `system func preupgrade()` or `system func postupgrade()` are present in the provided backend/main.mo diff content.",
+      "id": "REQ-84",
+      "requirement": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy; migration logic (if present) is idempotent and preserves vendors/products/userProfiles/counters/access control.",
+      "reason": "A migration module exists but appears to be a no-op (`run` returns `old`) and its Old/New actor types do not include `accessControlState` or backend metadata. There is no evidence of any logic that bridges from prior in-memory state to the new stable persistence representation, nor any handling of access control state.",
       "evidence": [
+        "backend/migration.mo",
         "backend/main.mo"
       ]
     },
     {
-      "id": "REQ-53",
-      "requirement": "Add minimal backend-level (non-user-facing) sanity checks/logging around upgrade hooks/migration without introducing new public APIs.",
-      "reason": "No logging/diagnostics statements or sanity checks around upgrade/migration are visible in the diff; upgrade hooks themselves are also not shown.",
+      "id": "REQ-85",
+      "requirement": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without exposing sensitive data.",
+      "reason": "No evidence of upgrade-hook logging (counts/version/counters) is shown. While Debug is imported, the diff summary does not show any upgrade-related logs in preupgrade/postupgrade or migration.",
       "evidence": [
         "backend/main.mo",
         "backend/migration.mo"
+      ]
+    },
+    {
+      "id": "REQ-86",
+      "requirement": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (counts and counters match reality) and remains admin-gated.",
+      "reason": "Although an `UpgradeSummary` type is present, the diff summary does not show an implementation of `getUpgradeSummary`, nor evidence it reads from persisted (stable) state post-upgrade or that admin-gating behavior is preserved.",
+      "evidence": [
+        "backend/main.mo"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Updated backend metadata version to 2.1.0 (and potentially other non-upgrade-related backend metadata changes).",
-      "reason": "BuildRequest focuses on stable storage and upgrade hooks; it does not request changing backend version metadata.",
+      "description": "Added backend/migration.mo module and wired migration into backend/main.mo.",
+      "reason": "REQ-84 requires migration.mo only if mandated by the platform’s conditional migration policy. The diff shows migration.mo added unconditionally, but the diff provides no evidence that the platform policy requires it in this case.",
       "evidence": [
+        "backend/migration.mo",
         "backend/main.mo"
-      ]
-    },
-    {
-      "description": "Modified project_state.json summary/state (Phase 4 to Phase 5 vendor discovery experience).",
-      "reason": "BuildRequest is backend upgrade-persistence work; updating project tracking/state is not requested.",
-      "evidence": [
-        "project_state.json"
       ]
     }
   ],
-  "confidence": 0.73,
+  "confidence": 0.62,
   "changed_files": [
     "backend/main.mo",
     "backend/migration.mo",

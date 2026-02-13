@@ -1,24 +1,21 @@
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
-import VendorId "mo:core/Nat";
-import ProductId "mo:core/Nat";
-import Auth "authorization/access-control";
+import Principal "mo:core/Principal";
 
 module {
-  type UserProfile = {
-    name : Text;
-  };
+  public type ProductId = Nat;
+  public type VendorId = Nat;
 
-  type VendorProfile = {
-    id : Nat;
+  public type VendorProfile = {
+    id : VendorId;
     user : Principal;
     companyName : Text;
     logoUrl : Text;
     isVerified : Bool;
   };
 
-  type Product = {
-    id : Nat;
+  public type Product = {
+    id : ProductId;
     ownerPrincipal : Principal;
     title : Text;
     description : Text;
@@ -31,23 +28,27 @@ module {
     updatedAt : Int;
   };
 
-  type OldActor = {
-    accessControlState : Auth.AccessControlState;
-    userProfiles : Map.Map<Principal, UserProfile>;
+  public type UserProfile = {
+    name : Text;
+  };
+
+  public type OldActor = {
     vendors : Map.Map<Nat, VendorProfile>;
     products : Map.Map<Nat, Product>;
+    userProfiles : Map.Map<Principal, UserProfile>;
     lastVendorId : Nat;
     lastProductId : Nat;
   };
 
-  type NewActor = {
-    accessControlState : Auth.AccessControlState;
-    userProfiles : Map.Map<Principal, UserProfile>;
+  public type NewActor = {
     vendors : Map.Map<Nat, VendorProfile>;
     products : Map.Map<Nat, Product>;
+    userProfiles : Map.Map<Principal, UserProfile>;
     lastVendorId : Nat;
     lastProductId : Nat;
   };
 
-  public func run(old : OldActor) : NewActor { old };
+  public func run(old : OldActor) : NewActor {
+    old;
+  };
 };

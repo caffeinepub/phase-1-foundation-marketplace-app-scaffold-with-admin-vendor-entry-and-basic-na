@@ -1,6 +1,6 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "No frontend changes required for backend stable storage + upgrade hooks",
+  "title": "Phase 5 next step: upgrade-safe persistence (frontend-only plan)",
   "requirements": []
 }

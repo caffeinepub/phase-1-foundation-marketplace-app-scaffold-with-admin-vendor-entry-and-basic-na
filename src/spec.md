@@ -1,12 +1,12 @@
 # Specification
 
 ## Summary
-**Goal:** Unblock error-free canister deployment by persisting all marketplace backend state across upgrades with upgrade-safe storage and hooks.
+**Goal:** Make the marketplace backend upgrade-safe by persisting all critical state across canister upgrades, with a conditional migration path and minimal diagnostics.
 
 **Planned changes:**
-- Move all required backend state from in-memory structures in `backend/main.mo` into stable storage so it survives upgrades (access control state, `userProfiles`, `vendors`, `products`, `lastVendorId`, `lastProductId`).
-- Add `system func preupgrade()` and `system func postupgrade()` in `backend/main.mo` to round-trip all persisted state and restore in-memory structures without changing existing API behavior.
-- Add a conditional migration path to preserve already-deployed in-memory Map-based state when transitioning to stable storage, creating `backend/migration.mo` only if required by the platform migration policy.
-- Add minimal backend-only sanity checks/logging around upgrade hooks/migration for diagnosing upgrade issues without introducing new public APIs or changing user-facing behavior.
+- Move current in-memory backend state in `backend/main.mo` into stable storage and implement `preupgrade`/`postupgrade` hooks to serialize and restore the full state (access control state, user profiles, vendors, products, ID counters, and required metadata).
+- Add a conditional upgrade migration path to preserve already-deployed in-memory Map-based state when transitioning to stable persistence (create or update `backend/migration.mo` only if required by the platform policy), ensuring migration is idempotent.
+- Add minimal, non-user-facing sanity checks/logging around upgrade hooks (and migration if present) using only non-sensitive diagnostics (counts/counters/version info).
+- Ensure the admin-only `getUpgradeSummary` endpoint accurately reflects persisted counts and counters after upgrades, without changing its authorization behavior.
 
-**User-visible outcome:** After a canister upgrade, previously created vendors, products, and user profiles remain available via existing query methods, with no UX/copy changes.
+**User-visible outcome:** After a canister upgrade, existing vendor profiles and products remain available through existing APIs/UI, new vendor/product IDs continue allocating without collisions, and admins can verify preservation via the existing upgrade summary/diagnostics.

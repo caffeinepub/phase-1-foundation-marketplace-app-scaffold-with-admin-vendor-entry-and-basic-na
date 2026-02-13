@@ -1,98 +1,104 @@
 {
   "kind": "build_request",
-  "title": "Add stable storage + upgrade hooks to unblock error-free deployment",
-  "priority": "high",
+  "title": "Phase 5 next step: make backend state upgrade-safe with stable persistence + conditional migration",
+  "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-50",
-      "text": "Persist all marketplace state across canister upgrades by moving the in-memory state in backend/main.mo into stable storage, including: access control state, userProfiles, vendors, products, lastVendorId, and lastProductId.",
+      "id": "REQ-83",
+      "text": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss (including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId, and any backend metadata needed for normal operation).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
           "msg-4"
         ],
         "quotes": [
-          "Add stable storage for vendors, products, user profiles, and ID counters.",
-          "Yes please go ahead and thanks"
+          "Keep moving to the next step"
         ]
       },
       "acceptanceCriteria": [
-        "backend/main.mo uses stable variables (directly or via stable serialization structures) so that vendor profiles, products, user profiles, access control state, and ID counters can survive upgrades.",
-        "After an upgrade, existing vendors/products/user profiles created before the upgrade are still returned by the relevant query methods (e.g., getVerifiedVendorProfiles/getPublishedProducts/getCallerVendorProfile/getCallerProducts/getCallerUserProfile)."
+        "After creating vendor profiles and products, performing a canister upgrade, and reloading the app, vendor profiles and products are still present and readable via existing query APIs (e.g., getVerifiedVendorProfiles/getPublishedProducts/getProductById).",
+        "After upgrade, ID allocation continues correctly (new vendor/product IDs do not collide with existing ones; lastVendorId/lastProductId reflect the next ID to assign).",
+        "Access control behavior is unchanged after upgrade (admin-only endpoints remain admin-only; user endpoints remain user-only).",
+        "preupgrade/postupgrade in backend/main.mo actually serialize and restore state (not just Debug.print), and no runtime traps occur during upgrade."
       ]
     },
     {
-      "id": "REQ-51",
-      "text": "Implement upgrade-safe serialization and restoration for backend state by adding system upgrade hooks in backend/main.mo (preupgrade/postupgrade) that correctly round-trip all persisted state.",
+      "id": "REQ-84",
+      "text": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
           "msg-4"
         ],
         "quotes": [
-          "Add preupgrade/postupgrade hooks so the canister can safely upgrade.",
-          "Yes please go ahead and thanks"
+          "Keep moving to the next step"
         ]
       },
       "acceptanceCriteria": [
-        "backend/main.mo includes system func preupgrade() and system func postupgrade().",
-        "preupgrade captures all required state into stable storage; postupgrade restores in-memory structures so existing APIs continue to work without behavioral changes.",
-        "Upgrade hooks do not change any user-facing error messages or authorization behavior for existing endpoints."
+        "If the platform migration policy requires a migration module, backend/migration.mo exists and upgrades preserve pre-existing deployed state (vendors/products/userProfiles/counters/access control).",
+        "If the platform migration policy does not require a migration module, no migration.mo is added and upgrades still preserve state via stable storage hooks in backend/main.mo.",
+        "Migration logic (if present) is idempotent and does not duplicate records or reset counters when applied more than once."
       ]
     },
     {
-      "id": "REQ-52",
-      "text": "Add a conditional migration path following the platform migration policy to preserve already-deployed in-memory Map-based state when transitioning to stable storage; create backend/migration.mo only if required by the platform policy.",
+      "id": "REQ-85",
+      "text": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
           "msg-4"
         ],
         "quotes": [
-          "Add stable-storage and migration support.",
-          "Yes please go ahead and thanks"
+          "Keep moving to the next step"
         ]
       },
       "acceptanceCriteria": [
-        "If the platform migration policy requires backend/migration.mo, it is added and used to preserve state during the transition; otherwise, no migration file is added.",
-        "The chosen approach (with or without backend/migration.mo) results in successful canister upgrade deployment without losing state created before the upgrade."
+        "Upgrade-related logs are limited to non-sensitive diagnostics (e.g., counts, version numbers, counter values) and do not print user profile contents or other sensitive fields.",
+        "Normal API responses and UI behavior are unchanged aside from upgrade persistence improvements."
       ]
     },
     {
-      "id": "REQ-53",
-      "text": "Add minimal backend-level (non-user-facing) sanity checks/logging around upgrade hooks/migration to help diagnose upgrade issues without changing user-facing behavior.",
+      "id": "REQ-86",
+      "text": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (counts and counters match reality) so the Admin Dashboard upgrade verification UI can be used to validate upgrade preservation before vs. after deployments.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3",
           "msg-4"
         ],
         "quotes": [
-          "Add minimal backend-level sanity checks/logging (non-user-facing) around upgrade hooks/migration to help diagnose upgrade issues without changing user-facing behavior.",
-          "Yes please go ahead and thanks"
+          "Keep moving to the next step"
         ]
       },
       "acceptanceCriteria": [
-        "Upgrade hooks/migration include minimal diagnostics suitable for debugging upgrade issues (no UI changes, no new frontend text).",
-        "No additional public APIs are introduced solely for logging/debugging."
+        "Calling getUpgradeSummary as an admin returns vendorCount/productCount that match the actual number of stored vendors/products after an upgrade.",
+        "getUpgradeSummary.lastVendorId/lastProductId match the persisted counters after an upgrade and remain consistent with the next created IDs.",
+        "getUpgradeSummary remains admin-gated (non-admin callers receive an authorization trap as before)."
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor; keep all Motoko logic in backend/main.mo.",
-    "Generate backend/migration.mo only when required by the platform’s conditional migration policy.",
-    "Do not modify files under frontend/src/components/ui or other frontend immutable paths listed in SYSTEM_CONTEXT."
+    "Backend must remain a single Motoko actor in backend/main.mo; do not introduce additional backend services.",
+    "Create backend/migration.mo only if required by the platform's conditional migration policy.",
+    "Use English for any user-facing text."
   ],
   "nonGoals": [
-    "Do not add new marketplace features (payments, analytics, roles/permissions expansion, multi-organization support, etc.).",
-    "Do not change existing frontend UX/copy as part of this deployment-unblocker work.",
-    "Do not introduce additional backend canisters or external databases/services."
+    "Do not add payments, checkout, or any financial processing.",
+    "Do not introduce a complex roles/permissions matrix beyond the existing admin/vendor mode approach.",
+    "Do not add external databases or third-party backend infrastructure.",
+    "Do not change public API shapes unless strictly required for upgrade-safe persistence (prefer backward-compatible changes)."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
+  },
+  "userProfileUpdate": {
+    "goalsToAdd": [],
+    "goalsToRemove": [],
+    "preferencesToAdd": [],
+    "preferencesToRemove": [],
+    "miscToAdd": [],
+    "miscToRemove": [],
+    "fieldsToSet": {},
+    "fieldsToDelete": []
   }
 }

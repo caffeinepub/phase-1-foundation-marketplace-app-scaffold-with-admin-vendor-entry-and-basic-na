@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useActor } from './useActor';
-import type { VendorProfile, VendorId, Product, ProductId } from '../backend';
+import type { VendorProfile, VendorId, Product, ProductId, UpgradeSummary } from '../backend';
 import { Principal } from '@dfinity/principal';
 
 // Public product browsing
@@ -60,7 +60,7 @@ export function useVendorProfileByUser(owner: Principal | undefined) {
   });
 }
 
-// Phase 5: Public verified vendors list
+// Phase 5: Public verified vendors list (original method)
 export function useVerifiedVendors() {
   const { actor, isFetching } = useActor();
 
@@ -69,6 +69,20 @@ export function useVerifiedVendors() {
     queryFn: async () => {
       if (!actor) throw new Error('Actor not initialized');
       return actor.getVerifiedVendorProfiles();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Phase 5: Public verified vendors list (new discovery API)
+export function useListVerifiedVendors() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<VendorProfile[]>({
+    queryKey: ['listVerifiedVendors'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.listVerifiedVendors();
     },
     enabled: !!actor && !isFetching,
   });
@@ -85,6 +99,21 @@ export function useVendorProducts(vendorId: VendorId | undefined) {
       return actor.getVendorProductsByVendorId(vendorId);
     },
     enabled: !!actor && !isFetching && vendorId !== undefined,
+    retry: false,
+  });
+}
+
+// Phase 5: Vendor's published products by principal (new discovery API)
+export function useListPublishedProductsByVendor(vendorPrincipal: Principal | undefined) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Product[]>({
+    queryKey: ['listPublishedProductsByVendor', vendorPrincipal?.toString()],
+    queryFn: async () => {
+      if (!actor || !vendorPrincipal) throw new Error('Actor or vendorPrincipal not available');
+      return actor.listPublishedProductsByVendor(vendorPrincipal);
+    },
+    enabled: !!actor && !isFetching && !!vendorPrincipal,
     retry: false,
   });
 }
@@ -230,6 +259,37 @@ export function useVerifyVendor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allVendorProfiles'] });
       queryClient.invalidateQueries({ queryKey: ['verifiedVendors'] });
+      queryClient.invalidateQueries({ queryKey: ['listVerifiedVendors'] });
     },
+  });
+}
+
+// Admin: Check if caller is admin
+export function useIsCallerAdmin() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['isCallerAdmin'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.isCallerAdmin();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+// Admin: Get upgrade summary for diagnostics
+export function useUpgradeSummary() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UpgradeSummary>({
+    queryKey: ['upgradeSummary'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.getUpgradeSummary();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
   });
 }

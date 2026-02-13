@@ -8,22 +8,31 @@ export interface None {
 }
 export type Option<T> = Some<T> | None;
 export interface BackendMetadata {
-    version: string;
-    environment: Environment;
+    version: Version;
+    environment: Env;
 }
+export type Money = bigint;
 export type Timestamp = bigint;
+export type Name = string;
+export type Url = string;
+export interface UpgradeSummary {
+    lastProductId: bigint;
+    productCount: bigint;
+    version: bigint;
+    vendorCount: bigint;
+    lastVendorId: bigint;
+}
+export type ProductCurrency = string;
+export type Version = string;
 export type ProductId = bigint;
 export interface VendorProfile {
     id: VendorId;
     user: Principal;
-    logoUrl: string;
+    logoUrl: Url;
     isVerified: boolean;
-    companyName: string;
+    companyName: Name;
 }
 export type VendorId = bigint;
-export interface UserProfile {
-    name: string;
-}
 export interface Product {
     id: ProductId;
     title: string;
@@ -33,11 +42,14 @@ export interface Product {
     description: string;
     updatedAt: Timestamp;
     imageUrl: string;
-    currency: string;
+    currency: ProductCurrency;
     category: string;
-    price: bigint;
+    price: Money;
 }
-export enum Environment {
+export interface UserProfile {
+    name: string;
+}
+export enum Env {
     dev = "dev",
     prod = "prod"
 }
@@ -47,6 +59,7 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
+    addVendorProfile(profile: VendorProfile): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
@@ -59,6 +72,7 @@ export interface backendInterface {
     getProductById(productId: ProductId): Promise<Product | null>;
     getPublishedProducts(): Promise<Array<Product>>;
     getTotalVendorCount(): Promise<bigint>;
+    getUpgradeSummary(): Promise<UpgradeSummary>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     getVendorProductsByPrincipal(owner: Principal): Promise<Array<Product>>;
     getVendorProductsByVendorId(vendorId: VendorId): Promise<Array<Product>>;
@@ -66,6 +80,8 @@ export interface backendInterface {
     getVendorProfileByUser(owner: Principal): Promise<VendorProfile | null>;
     getVerifiedVendorProfiles(): Promise<Array<VendorProfile>>;
     isCallerAdmin(): Promise<boolean>;
+    listPublishedProductsByVendor(vendorPrincipal: Principal): Promise<Array<Product>>;
+    listVerifiedVendors(): Promise<Array<VendorProfile>>;
     ping(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     updateProduct(productId: ProductId, title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<void>;

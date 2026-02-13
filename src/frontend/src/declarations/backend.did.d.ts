@@ -10,12 +10,11 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface BackendMetadata {
-  'version' : string,
-  'environment' : Environment,
-}
-export type Environment = { 'dev' : null } |
+export interface BackendMetadata { 'version' : Version, 'environment' : Env }
+export type Env = { 'dev' : null } |
   { 'prod' : null };
+export type Money = bigint;
+export type Name = string;
 export interface Product {
   'id' : ProductId,
   'title' : string,
@@ -25,12 +24,21 @@ export interface Product {
   'description' : string,
   'updatedAt' : Timestamp,
   'imageUrl' : string,
-  'currency' : string,
+  'currency' : ProductCurrency,
   'category' : string,
-  'price' : bigint,
+  'price' : Money,
 }
+export type ProductCurrency = string;
 export type ProductId = bigint;
 export type Timestamp = bigint;
+export interface UpgradeSummary {
+  'lastProductId' : bigint,
+  'productCount' : bigint,
+  'version' : bigint,
+  'vendorCount' : bigint,
+  'lastVendorId' : bigint,
+}
+export type Url = string;
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
@@ -39,12 +47,14 @@ export type VendorId = bigint;
 export interface VendorProfile {
   'id' : VendorId,
   'user' : Principal,
-  'logoUrl' : string,
+  'logoUrl' : Url,
   'isVerified' : boolean,
-  'companyName' : string,
+  'companyName' : Name,
 }
+export type Version = string;
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addVendorProfile' : ActorMethod<[VendorProfile], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createProduct' : ActorMethod<
     [string, string, bigint, string, string, string, boolean],
@@ -60,6 +70,7 @@ export interface _SERVICE {
   'getProductById' : ActorMethod<[ProductId], [] | [Product]>,
   'getPublishedProducts' : ActorMethod<[], Array<Product>>,
   'getTotalVendorCount' : ActorMethod<[], bigint>,
+  'getUpgradeSummary' : ActorMethod<[], UpgradeSummary>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'getVendorProductsByPrincipal' : ActorMethod<[Principal], Array<Product>>,
   'getVendorProductsByVendorId' : ActorMethod<[VendorId], Array<Product>>,
@@ -67,6 +78,8 @@ export interface _SERVICE {
   'getVendorProfileByUser' : ActorMethod<[Principal], [] | [VendorProfile]>,
   'getVerifiedVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'listPublishedProductsByVendor' : ActorMethod<[Principal], Array<Product>>,
+  'listVerifiedVendors' : ActorMethod<[], Array<VendorProfile>>,
   'ping' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'updateProduct' : ActorMethod<

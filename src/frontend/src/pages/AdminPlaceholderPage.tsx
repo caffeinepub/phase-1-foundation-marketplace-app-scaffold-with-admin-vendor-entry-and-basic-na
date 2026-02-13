@@ -3,12 +3,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Shield, CheckCircle, AlertCircle, Store } from 'lucide-react';
-import { useAllVendorProfiles, useVerifyVendor } from '../hooks/useMarketplaceQueries';
+import { Shield, CheckCircle, AlertCircle, Store, Database, Activity } from 'lucide-react';
+import { useAllVendorProfiles, useVerifyVendor, useIsCallerAdmin, useUpgradeSummary } from '../hooks/useMarketplaceQueries';
 import { useState } from 'react';
 import type { VendorId } from '../backend';
+import { useInternetIdentity } from '../hooks/useInternetIdentity';
 
 export default function AdminPlaceholderPage() {
+  const { identity } = useInternetIdentity();
+  const isAuthenticated = !!identity;
+
+  const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
+  const { data: upgradeSummary, isLoading: summaryLoading, error: summaryError } = useUpgradeSummary();
   const { data: vendors, isLoading, error } = useAllVendorProfiles();
   const verifyVendorMutation = useVerifyVendor();
   const [verifyError, setVerifyError] = useState<string | null>(null);
@@ -45,6 +51,90 @@ export default function AdminPlaceholderPage() {
             <AlertDescription>{verifyError}</AlertDescription>
           </Alert>
         )}
+
+        {/* Upgrade Diagnostics Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Upgrade Diagnostics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!isAuthenticated ? (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Please sign in to view upgrade diagnostics.
+                </AlertDescription>
+              </Alert>
+            ) : isAdminLoading || summaryLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : !isAdmin ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Unauthorized: Only admins can access upgrade diagnostics.
+                </AlertDescription>
+              </Alert>
+            ) : summaryError ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Failed to load upgrade diagnostics. {summaryError instanceof Error ? summaryError.message : 'Please try again later.'}
+                </AlertDescription>
+              </Alert>
+            ) : upgradeSummary ? (
+              <div className="space-y-4">
+                <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg border">
+                  <Activity className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium mb-1">How to verify upgrade behavior:</p>
+                    <ol className="list-decimal list-inside space-y-1 ml-1">
+                      <li>Note the values below before deploying an upgrade</li>
+                      <li>Deploy the canister upgrade</li>
+                      <li>Return to this page and verify the values remain unchanged</li>
+                      <li>If values match, the upgrade preserved state correctly</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-2 p-4 border rounded-lg bg-card">
+                    <p className="text-sm text-muted-foreground font-medium">Version</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.version.toString()}</p>
+                  </div>
+                  <div className="space-y-2 p-4 border rounded-lg bg-card">
+                    <p className="text-sm text-muted-foreground font-medium">Vendor Count</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.vendorCount.toString()}</p>
+                  </div>
+                  <div className="space-y-2 p-4 border rounded-lg bg-card">
+                    <p className="text-sm text-muted-foreground font-medium">Product Count</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.productCount.toString()}</p>
+                  </div>
+                  <div className="space-y-2 p-4 border rounded-lg bg-card">
+                    <p className="text-sm text-muted-foreground font-medium">Last Vendor ID</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.lastVendorId.toString()}</p>
+                  </div>
+                  <div className="space-y-2 p-4 border rounded-lg bg-card col-span-2 md:col-span-4">
+                    <p className="text-sm text-muted-foreground font-medium">Last Product ID</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.lastProductId.toString()}</p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

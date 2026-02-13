@@ -1,7 +1,7 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T07:26:58.980Z",
+  "generatedAt": "2026-02-13T20:38:13.554Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
@@ -11,29 +11,29 @@
     "implemented": 0,
     "items": [
       {
-        "id": "REQ-50",
-        "summary": "Persist all marketplace state across canister upgrades by moving the in-memory state in backend/main.mo into stable storage, including: access control state, userProfiles, vendors, products, lastVendorId, and lastProductId.",
+        "id": "REQ-83",
+        "summary": "Persist all marketplace backend state across canister upgrades by moving the current in-memory state in backend/main.mo into stable storage and implementing system upgrade hooks (preupgrade/postupgrade) that correctly round-trip the full state without data loss (including: accessControlState, userProfiles, vendors, products, lastVendorId, lastProductId, and any backend metadata needed for normal operation).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-51",
-        "summary": "Implement upgrade-safe serialization and restoration for backend state by adding system upgrade hooks in backend/main.mo (preupgrade/postupgrade) that correctly round-trip all persisted state.",
+        "id": "REQ-84",
+        "summary": "Implement a conditional upgrade migration path that preserves already-deployed in-memory Map-based state when transitioning to the new stable persistence implementation, following the platform migration policy (create or update backend/migration.mo only if required by the policy).",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-52",
-        "summary": "Add a conditional migration path following the platform migration policy to preserve already-deployed in-memory Map-based state when transitioning to stable storage; create backend/migration.mo only if required by the platform policy.",
+        "id": "REQ-85",
+        "summary": "Add minimal, non-user-facing backend sanity checks/logging around upgrade hooks (and any migration, if present) to help diagnose upgrade issues without exposing sensitive data or changing user-facing behavior.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
       },
       {
-        "id": "REQ-53",
-        "summary": "Add minimal backend-level (non-user-facing) sanity checks/logging around upgrade hooks/migration to help diagnose upgrade issues without changing user-facing behavior.",
+        "id": "REQ-86",
+        "summary": "Ensure the existing admin-only upgrade diagnostics endpoint getUpgradeSummary accurately reflects the persisted state after upgrades (counts and counters match reality) so the Admin Dashboard upgrade verification UI can be used to validate upgrade preservation before vs. after deployments.",
         "status": "unknown",
         "plannedFiles": [],
         "matchedFiles": []
