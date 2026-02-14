@@ -1,51 +1,40 @@
 {
   "kind": "spec_vs_diff_report",
   "version": "1.0",
-  "generatedAt": "2026-02-13T23:41:38.409Z",
-  "summary": "Diff implements the core “App Owner / Creator” concept in the backend (state variable + query methods + one-time claim) and updates frontend gating to allow Admin OR App Owner (RequireAdmin, HeaderNav, RoleSelect, Admin dashboard). However, the diff evidence is insufficient to confirm upgrade-stable persistence for appOwner and that all admin-allowlist management APIs now authorize via (admin OR app owner). The required new React Query hooks for app owner are referenced by imports/usage, but their actual implementation is not visible in the truncated hook file excerpt.",
+  "generatedAt": "2026-02-14T21:02:12.504Z",
+  "summary": "Frontend was updated to use new admin/bootstrapping signals via hooks like useHasAdmin and to avoid calling admin-gated getAdmins() unless authorized, but the diff evidence does not show the required new backend public query APIs (isCallerAdmin and admin count) being added to backend/main.mo. There is also an added access-control behavior in the RequireAdmin guard that allows entry when no admins exist, which was not explicitly requested in the BuildRequest.",
   "missing_requirements": [
     {
-      "id": "REQ-102",
-      "requirement": "Backend stores an app owner/creator principal in canister state that survives upgrades.",
-      "reason": "The diff shows `var appOwner : ?Principal = null;` but does not show any `stable` storage for appOwner or any preupgrade/postupgrade handling that would persist it across upgrades (and the file is truncated before any upgrade hooks).",
+      "id": "REQ-1",
+      "requirement": "backend/main.mo exposes a query method named isCallerAdmin() : async Bool that returns true iff the caller exists in adminAllowlist and does not trap.",
+      "reason": "The backend diff snippet shows adminAllowlist and isAppOwnerOrAdmin(), but does not include any public query method named isCallerAdmin(). Because backend/main.mo is truncated, this cannot be confirmed as implemented.",
       "evidence": [
-        "backend/main.mo"
+        "backend/main.mo (truncated; no isCallerAdmin() shown)"
       ]
     },
     {
-      "id": "REQ-103",
-      "requirement": "All admin allowlist management APIs (list/add/remove/set/bootstrap helpers) must authorize callers who are either in the admin allowlist OR the app owner, and reject others with a clear English unauthorized error message (while preserving safety constraints like not removing the last admin).",
-      "reason": "A helper `isAppOwnerOrAdmin` is added, but the diff excerpt does not show it being applied to the admin allowlist management methods (listing admins, adding, removing, bootstrap/set helpers), nor does it show the updated unauthorized trap messages and last-admin safety behavior for those endpoints.",
+      "id": "REQ-2",
+      "requirement": "backend/main.mo exposes a public (non-admin-gated) query method returning the current adminAllowlist size (e.g., getAdminCount() : async Nat) that does not trap for non-admin callers.",
+      "reason": "The backend diff snippet does not show any public query that returns adminAllowlist.size() (or equivalent). Because backend/main.mo is truncated, this cannot be confirmed as implemented.",
       "evidence": [
-        "backend/main.mo"
+        "backend/main.mo (truncated; no admin count method shown)"
       ]
     },
     {
-      "id": "REQ-104",
-      "requirement": "Add React Query hooks in frontend/src/hooks/useMarketplaceQueries.ts to fetch the current app owner and whether the caller is the app owner, wired to real backend methods.",
-      "reason": "Other files import and use `useGetAppOwner`, `useIsCallerAppOwner`, and `useClaimAppOwner`, but the provided excerpt of useMarketplaceQueries.ts is truncated and does not show these hooks being implemented/wired to backend methods.",
+      "id": "REQ-3",
+      "requirement": "frontend/src/hooks/useMarketplaceQueries.ts uses actor.isCallerAdmin() for useIsCallerAdmin (matching the new backend API) and includes a new React Query hook to read admin count / 'any admins exist' signal from the backend public query.",
+      "reason": "Although other frontend files import/use useIsCallerAdmin and useHasAdmin, the provided truncated portion of useMarketplaceQueries.ts does not show the implementation of useIsCallerAdmin calling actor.isCallerAdmin(), nor does it show the admin-count/has-admin query hook implementation. This cannot be verified from the diff excerpt.",
       "evidence": [
-        "frontend/src/hooks/useMarketplaceQueries.ts",
-        "frontend/src/components/auth/RequireAdmin.tsx",
-        "frontend/src/pages/AdminPlaceholderPage.tsx",
-        "frontend/src/components/layout/HeaderNav.tsx",
-        "frontend/src/pages/RoleSelectPage.tsx"
+        "frontend/src/hooks/useMarketplaceQueries.ts (truncated)"
       ]
     }
   ],
   "hallucinated_features": [
     {
-      "description": "Extended admin/app-owner authorization UX in the header navigation (show/hide/disable Admin link with tooltip) beyond the explicitly requested RequireAdmin gating and Admin Dashboard changes.",
-      "reason": "REQ-104 only specifies updating RequireAdmin and adding hooks/copy; it does not request modifying HeaderNav behavior.",
+      "description": "RequireAdmin guard allows access to protected admin content when no admins exist yet (bootstrap scenario).",
+      "reason": "REQ-3 requires the Admin Dashboard to decide whether to show 'Claim Initial Admin' without calling admin-gated endpoints; it does not explicitly request relaxing route-level access control to allow entering the admin area without being an admin/app owner when admin allowlist is empty.",
       "evidence": [
-        "frontend/src/components/layout/HeaderNav.tsx"
-      ]
-    },
-    {
-      "description": "Role selection page updated to gate the Admin role card based on Admin OR App Owner authorization status.",
-      "reason": "REQ-104/REQ-105 focus on RequireAdmin gating and Admin Dashboard; RoleSelectPage changes are not requested explicitly.",
-      "evidence": [
-        "frontend/src/pages/RoleSelectPage.tsx"
+        "frontend/src/components/auth/RequireAdmin.tsx (canAccess = isAuthorized || (hasAdmin === false))"
       ]
     }
   ],
@@ -54,10 +43,8 @@
     "backend/main.mo",
     "frontend-file-summaries.txt",
     "frontend/src/components/auth/RequireAdmin.tsx",
-    "frontend/src/components/layout/HeaderNav.tsx",
     "frontend/src/hooks/useMarketplaceQueries.ts",
     "frontend/src/pages/AdminPlaceholderPage.tsx",
-    "frontend/src/pages/RoleSelectPage.tsx",
     "project_state.json"
   ]
 }

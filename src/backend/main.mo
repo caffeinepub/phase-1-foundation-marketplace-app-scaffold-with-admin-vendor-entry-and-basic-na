@@ -1,21 +1,17 @@
-import Nat "mo:core/Nat";
+import Int "mo:core/Int";
 import Text "mo:core/Text";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
 import List "mo:core/List";
-import Int "mo:core/Int";
+import Nat "mo:core/Nat";
+import Debug "mo:core/Debug";
 import Time "mo:core/Time";
 import Auth "authorization/access-control";
-import Debug "mo:core/Debug";
-
+import Map "mo:core/Map";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-// Required for stable Map support
-import Map "mo:core/Map";
-
 actor {
-  // Needed for metadata queries
   type Env = {
     #dev;
     #prod;
@@ -37,10 +33,8 @@ actor {
     };
   };
 
-  // Time constants
   let oneDayInNanos = 24 * 60 * 60 * 1_000_000_000;
 
-  // Type definitions
   type Money = Nat;
   type ProductCurrency = Text;
   public type ProductId = Nat;
@@ -49,13 +43,11 @@ actor {
 
   var accessControlState = Auth.initState();
   var appOwner : ?Principal = null;
-
   include MixinAuthorization(accessControlState);
 
   var userProfiles = Map.empty<Principal, UserProfile>();
   var vendors = Map.empty<VendorId, VendorProfile>();
   var products = Map.empty<Nat, Product>();
-
   var lastVendorId = 0;
   var lastProductId = 0;
   var adminAllowlist = Map.empty<Principal, Bool>();
@@ -97,7 +89,6 @@ actor {
     name : Text;
   };
 
-  // Helper function to check if caller is app owner or admin
   private func isAppOwnerOrAdmin(caller : Principal) : Bool {
     let isOwner = switch (appOwner) {
       case (?owner) { caller == owner };
@@ -107,11 +98,9 @@ actor {
     isOwner or isAdminInList;
   };
 
-  // System hooks (upgrade support)
   public query ({ caller }) func ping() : async Bool { true };
   public query ({ caller }) func whoami() : async Principal { caller };
 
-  // App Owner Management
   public query ({ caller }) func getAppOwner() : async ?Principal {
     appOwner;
   };
@@ -134,7 +123,6 @@ actor {
     };
   };
 
-  // User Profile Management (Required by frontend)
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
     if (not (Auth.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can access their profile");
@@ -143,7 +131,7 @@ actor {
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?UserProfile {
-    if (caller != user and not Auth.isAdmin(accessControlState, caller)) {
+    if (caller != user and not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
     userProfiles.get(user);
@@ -156,20 +144,19 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // Vendor and Product queries (public for marketplace browsing)
   public query ({ caller }) func getTotalVendorCount() : async Nat {
     vendors.size();
   };
 
   public query ({ caller }) func getAllVendorProfiles() : async [VendorProfile] {
-    if (not (Auth.hasPermission(accessControlState, caller, #admin))) {
+    if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can view all vendor profiles");
     };
     vendors.values().toArray();
   };
 
   public shared ({ caller }) func addVendorProfile(profile : VendorProfile) : async () {
-    if (not (Auth.hasPermission(accessControlState, caller, #admin))) {
+    if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can directly add vendor profiles");
     };
     vendors.add(profile.id, profile);
@@ -194,7 +181,7 @@ actor {
     switch (products.get(productId)) {
       case (null) { null };
       case (?product) {
-        if (product.isPublished or product.ownerPrincipal == caller or Auth.isAdmin(accessControlState, caller)) {
+        if (product.isPublished or product.ownerPrincipal == caller or isAppOwnerOrAdmin(caller)) {
           ?product;
         } else {
           null;
@@ -250,7 +237,7 @@ actor {
     switch (vendors.get(vendorId)) {
       case (null) { Runtime.trap("Vendor profile not found") };
       case (?existingVendor) {
-        if (existingVendor.user != caller and not Auth.isAdmin(accessControlState, caller)) {
+        if (existingVendor.user != caller and not isAppOwnerOrAdmin(caller)) {
           Runtime.trap("Unauthorized: Can only update your own vendor profile");
         };
 
@@ -320,7 +307,7 @@ actor {
   };
 
   public shared ({ caller }) func verifyVendor(vendorId : VendorId) : async () {
-    if (not (Auth.hasPermission(accessControlState, caller, #admin))) {
+    if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can verify vendors");
     };
 
@@ -388,7 +375,7 @@ actor {
     switch (products.get(productId)) {
       case (null) { Runtime.trap("Product not found") };
       case (?existingProduct) {
-        if (existingProduct.ownerPrincipal != caller and not Auth.isAdmin(accessControlState, caller)) {
+        if (existingProduct.ownerPrincipal != caller and not isAppOwnerOrAdmin(caller)) {
           Runtime.trap("Unauthorized: Only product owner or admin can update the product");
         };
 
@@ -410,7 +397,7 @@ actor {
   };
 
   public query ({ caller }) func getUpgradeSummary() : async UpgradeSummary {
-    if (not (Auth.hasPermission(accessControlState, caller, #admin))) {
+    if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can access upgrade summary");
     };
 
@@ -433,31 +420,25 @@ actor {
     ).toArray();
   };
 
-  // ======= ADMIN MANAGEMENT =======
-  // The adminAllowlist is the persistent source of truth for admin principals.
-  // All admin operations must update both the allowlist AND the AccessControl state.
-
-  /// Helper function to sync admin role in AccessControl state
   private func syncAdminRole(principal : Principal, isAdmin : Bool) {
     if (isAdmin) {
       Auth.assignRole(accessControlState, principal, principal, #admin);
     };
-    // Note: AccessControl module doesn't provide a way to remove roles,
-    // so we can only add admins to the AccessControl state.
-    // The adminAllowlist remains the authoritative source.
   };
 
-  /// Internal check (needed for bootstrap).
   public shared ({ caller }) func isAdminInternal(principal : Principal) : async Bool {
     adminAllowlist.containsKey(principal);
   };
 
-  /// Public check (for canister to canister or frontend).
   public query ({ caller }) func isAdmin(principal : Principal) : async Bool {
     adminAllowlist.containsKey(principal);
   };
 
-  /// Get all admin principals (guarded - app owner or admin only).
+  /// Returns true if there are any admins in the system.
+  public query ({ caller }) func hasAdmin() : async Bool {
+    not adminAllowlist.isEmpty();
+  };
+
   public query ({ caller }) func getAdmins() : async [Principal] {
     if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only app owner or admins can view all admin profiles");
@@ -465,7 +446,6 @@ actor {
     adminAllowlist.keys().toArray();
   };
 
-  /// Set the complete admin list (guarded - app owner or admin only).
   public shared ({ caller }) func setAdmins(admins : [Principal]) : async () {
     if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only app owner or admins can set admin list");
@@ -482,7 +462,6 @@ actor {
     };
   };
 
-  /// Add a new admin (guarded - app owner or admin only).
   public shared ({ caller }) func addAdmin(adminPrincipal : Principal) : async () {
     if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only app owner or admins can add new admin");
@@ -492,20 +471,19 @@ actor {
     syncAdminRole(adminPrincipal, true);
   };
 
-  /// Remove an admin (guarded - app owner or admin only).
   public shared ({ caller }) func removeAdmin(adminPrincipal : Principal) : async () {
     if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only app owner or admins can remove admin");
     };
-    
+
     // Prevent removing the last admin
     if (adminAllowlist.size() == 1 and adminAllowlist.containsKey(adminPrincipal)) {
       Runtime.trap("Cannot remove the last admin");
     };
-    
+
     switch (adminAllowlist.get(adminPrincipal)) {
       case (null) { Runtime.trap("Principal not in admin list") };
-      case (?_) { 
+      case (?_) {
         adminAllowlist.remove(adminPrincipal);
         // Note: We cannot remove the role from AccessControl state,
         // but the adminAllowlist check takes precedence in all admin operations
@@ -513,7 +491,6 @@ actor {
     };
   };
 
-  /// Bootstrap first admin when list is empty (no authorization required).
   public shared ({ caller }) func bootstrapFirstAdmin() : async () {
     if (not adminAllowlist.isEmpty()) {
       Runtime.trap("Admin already exists in canister. Use addAdmin instead.");
@@ -523,7 +500,6 @@ actor {
     syncAdminRole(caller, true);
   };
 
-  /// Bootstrap multiple admins when list is empty (no authorization required).
   public shared ({ caller }) func bootstrapAdmins(principals : [Principal]) : async () {
     if (not adminAllowlist.isEmpty()) {
       Runtime.trap("Admin list not empty. Use setAdmins instead.");

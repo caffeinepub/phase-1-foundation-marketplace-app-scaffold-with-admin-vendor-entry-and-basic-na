@@ -17,7 +17,8 @@ import {
   useRemoveAdmin,
   useBootstrapFirstAdmin,
   useGetAppOwner,
-  useClaimAppOwner
+  useClaimAppOwner,
+  useHasAdmin
 } from '../hooks/useMarketplaceQueries';
 import { useState } from 'react';
 import type { VendorId } from '../backend';
@@ -30,10 +31,15 @@ export default function AdminPlaceholderPage() {
 
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
   const { data: isAppOwner, isLoading: isAppOwnerLoading } = useIsCallerAppOwner();
+  const { data: hasAdmin, isLoading: hasAdminLoading } = useHasAdmin();
   const { data: appOwner, isLoading: appOwnerLoading } = useGetAppOwner();
   const { data: upgradeSummary, isLoading: summaryLoading, error: summaryError } = useUpgradeSummary();
-  const { data: vendors, isLoading, error } = useAllVendorProfiles();
-  const { data: admins, isLoading: adminsLoading, error: adminsError } = useGetAdmins();
+  
+  const isAuthorized = isAdmin || isAppOwner;
+  
+  // Only fetch admin-gated data when authorized
+  const { data: vendors, isLoading: vendorsLoading, error: vendorsError } = useAllVendorProfiles();
+  const { data: admins, isLoading: adminsLoading, error: adminsError } = useGetAdmins(isAuthorized);
   
   const verifyVendorMutation = useVerifyVendor();
   const addAdminMutation = useAddAdmin();
@@ -48,9 +54,9 @@ export default function AdminPlaceholderPage() {
   const [appOwnerSuccess, setAppOwnerSuccess] = useState<string | null>(null);
   const [newAdminPrincipal, setNewAdminPrincipal] = useState('');
 
-  const isAuthorized = isAdmin || isAppOwner;
   const canManageAdmins = isAuthorized && !isAdminLoading && !isAppOwnerLoading;
-  const noAdminsExist = admins && admins.length === 0;
+  const noAdminsExist = hasAdmin === false;
+  const showBootstrapUI = isAuthenticated && noAdminsExist && !hasAdminLoading;
 
   const handleVerify = async (vendorId: VendorId) => {
     setVerifyError(null);
@@ -135,7 +141,7 @@ export default function AdminPlaceholderPage() {
               </div>
               <div>
                 <h1 className="text-4xl font-bold">Admin Dashboard</h1>
-                <p className="text-muted-foreground">Vendor management and verification</p>
+                <p className="text-muted-foreground">Vendor management and verification (Admin or App Owner)</p>
               </div>
             </div>
           </div>
@@ -151,103 +157,64 @@ export default function AdminPlaceholderPage() {
         {/* App Owner / Creator Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5" />
-              App Owner / Creator
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-primary" />
+              <CardTitle>App Owner / Creator</CardTitle>
+            </div>
             <CardDescription>
-              The app owner has full administrative privileges and can manage the admin allowlist
+              The app owner is the first principal to claim ownership and has full admin privileges
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Current App Owner */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-                <Crown className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm font-medium">Current App Owner:</span>
-                {appOwnerLoading ? (
-                  <Skeleton className="h-5 w-48" />
-                ) : appOwner ? (
-                  <span className="font-mono text-sm flex-1 break-all">{appOwner.toString()}</span>
-                ) : (
-                  <span className="text-sm text-muted-foreground italic">Not set</span>
-                )}
+          <CardContent className="space-y-4">
+            {appOwnerLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-10 w-full" />
               </div>
-
-              {/* Your App Owner Status */}
-              {isAuthenticated && (
-                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-                  <Shield className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm font-medium">Your Status:</span>
-                  {isAppOwnerLoading ? (
-                    <Skeleton className="h-5 w-24" />
-                  ) : isAppOwner ? (
-                    <Badge variant="default" className="gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      You are the App Owner
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Not App Owner
-                    </Badge>
+            ) : appOwner ? (
+              <div className="space-y-2">
+                <Label>Current App Owner</Label>
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                  <Crown className="h-4 w-4 text-primary" />
+                  <code className="text-sm font-mono flex-1">{appOwner.toString()}</code>
+                  {identity && appOwner.toString() === identity.getPrincipal().toString() && (
+                    <Badge variant="default">You</Badge>
                   )}
                 </div>
-              )}
-            </div>
-
-            {appOwnerError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{appOwnerError}</AlertDescription>
-              </Alert>
-            )}
-
-            {appOwnerSuccess && (
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>{appOwnerSuccess}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Claim App Owner (only if no owner exists) */}
-            {!appOwnerLoading && !appOwner && isAuthenticated && (
-              <div className="space-y-4 p-4 border rounded-lg bg-card">
-                <div className="space-y-2">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Crown className="h-4 w-4" />
-                    Claim App Ownership
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    No app owner has been set yet. You can claim ownership of this application. This is a one-time action and cannot be undone.
-                  </p>
-                </div>
-                <Button 
-                  onClick={handleClaimAppOwner}
-                  disabled={claimAppOwnerMutation.isPending}
-                  className="gap-2"
-                >
-                  {claimAppOwnerMutation.isPending ? (
-                    <>
-                      <Activity className="h-4 w-4 animate-spin" />
-                      Claiming...
-                    </>
-                  ) : (
-                    <>
-                      <Crown className="h-4 w-4" />
-                      Claim App Ownership
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* App Owner Already Set */}
-            {!appOwnerLoading && appOwner && (
-              <div className="p-4 border rounded-lg bg-muted/30">
                 <p className="text-sm text-muted-foreground">
-                  App ownership has been claimed and cannot be transferred. The app owner has permanent administrative access.
+                  App ownership has been claimed. The owner has full admin privileges.
                 </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    No app owner has been set. The first user to claim ownership will become the app owner with full admin privileges.
+                  </AlertDescription>
+                </Alert>
+                {isAuthenticated && (
+                  <Button 
+                    onClick={handleClaimAppOwner}
+                    disabled={claimAppOwnerMutation.isPending}
+                    className="gap-2"
+                  >
+                    <Crown className="h-4 w-4" />
+                    {claimAppOwnerMutation.isPending ? 'Claiming...' : 'Claim App Ownership'}
+                  </Button>
+                )}
+                {appOwnerError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{appOwnerError}</AlertDescription>
+                  </Alert>
+                )}
+                {appOwnerSuccess && (
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>{appOwnerSuccess}</AlertDescription>
+                  </Alert>
+                )}
               </div>
             )}
           </CardContent>
@@ -256,319 +223,231 @@ export default function AdminPlaceholderPage() {
         {/* Admin Assignment Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Admin Assignment
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>Admin Assignment</CardTitle>
+            </div>
             <CardDescription>
-              Manage admin allowlist access (available to Admin or App Owner)
+              Manage the admin allowlist. Admin or App Owner privileges required for management operations.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Admin Status */}
-            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-              <Shield className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm font-medium">Your Admin Status:</span>
-              {isAdminLoading ? (
-                <Skeleton className="h-5 w-24" />
-              ) : isAdmin ? (
-                <Badge variant="default" className="gap-1">
-                  <CheckCircle className="h-3 w-3" />
-                  Authorized
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  Not in Allowlist
-                </Badge>
-              )}
-            </div>
+            {/* Bootstrap First Admin UI - shown when no admins exist */}
+            {showBootstrapUI && (
+              <div className="space-y-4">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    No admins have been assigned yet. You can claim initial admin privileges to get started.
+                  </AlertDescription>
+                </Alert>
+                <Button 
+                  onClick={handleBootstrapFirstAdmin}
+                  disabled={bootstrapFirstAdminMutation.isPending}
+                  className="gap-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  {bootstrapFirstAdminMutation.isPending ? 'Claiming...' : 'Claim Initial Admin'}
+                </Button>
+              </div>
+            )}
 
+            {/* Admin Management UI - shown when authorized */}
+            {canManageAdmins && (
+              <>
+                {/* Current Admins List */}
+                <div className="space-y-3">
+                  <Label>Current Admins</Label>
+                  {adminsLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : adminsError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Failed to load admin list: {adminsError instanceof Error ? adminsError.message : 'Unknown error'}
+                      </AlertDescription>
+                    </Alert>
+                  ) : admins && admins.length > 0 ? (
+                    <div className="space-y-2">
+                      {admins.map((admin) => (
+                        <div key={admin.toString()} className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+                          <Shield className="h-4 w-4 text-primary" />
+                          <code className="text-sm font-mono flex-1">{admin.toString()}</code>
+                          {identity && admin.toString() === identity.getPrincipal().toString() && (
+                            <Badge variant="default">You</Badge>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveAdmin(admin)}
+                            disabled={removeAdminMutation.isPending || admins.length === 1}
+                            className="gap-1"
+                          >
+                            <UserMinus className="h-3 w-3" />
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No admins assigned yet.</p>
+                  )}
+                </div>
+
+                {/* Add New Admin */}
+                <div className="space-y-3">
+                  <Label htmlFor="newAdminPrincipal">Add New Admin</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="newAdminPrincipal"
+                      placeholder="Enter principal ID"
+                      value={newAdminPrincipal}
+                      onChange={(e) => setNewAdminPrincipal(e.target.value)}
+                      className="font-mono text-sm"
+                    />
+                    <Button
+                      onClick={handleAddAdmin}
+                      disabled={addAdminMutation.isPending || !newAdminPrincipal.trim()}
+                      className="gap-2"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      {addAdminMutation.isPending ? 'Adding...' : 'Add'}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the principal ID of the user you want to grant admin privileges.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Status Messages */}
             {adminError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{adminError}</AlertDescription>
               </Alert>
             )}
-
             {adminSuccess && (
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>{adminSuccess}</AlertDescription>
               </Alert>
             )}
-
-            {/* Bootstrap First Admin (only if no admins exist and user is not authorized) */}
-            {!isAdminLoading && !isAppOwnerLoading && !isAuthorized && !adminsLoading && noAdminsExist && (
-              <div className="space-y-4 p-4 border rounded-lg bg-card">
-                <div className="space-y-2">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Claim Initial Admin
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    No admins exist yet. You can claim initial admin privileges for this deployment.
-                  </p>
-                </div>
-                <Button 
-                  onClick={handleBootstrapFirstAdmin}
-                  disabled={bootstrapFirstAdminMutation.isPending}
-                  className="gap-2"
-                >
-                  {bootstrapFirstAdminMutation.isPending ? (
-                    <>
-                      <Activity className="h-4 w-4 animate-spin" />
-                      Claiming...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4" />
-                      Claim Initial Admin
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* Admin Management (only for authorized users: admin OR app owner) */}
-            {canManageAdmins && (
-              <>
-                {/* Add Admin */}
-                <div className="space-y-4 p-4 border rounded-lg bg-card">
-                  <div className="space-y-2">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <UserPlus className="h-4 w-4" />
-                      Add Admin
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      Enter a principal ID to grant admin privileges
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="newAdminPrincipal">Principal ID</Label>
-                      <Input
-                        id="newAdminPrincipal"
-                        placeholder="xxxxx-xxxxx-xxxxx-xxxxx-xxx"
-                        value={newAdminPrincipal}
-                        onChange={(e) => setNewAdminPrincipal(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleAddAdmin()}
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <Button 
-                        onClick={handleAddAdmin}
-                        disabled={addAdminMutation.isPending || !newAdminPrincipal.trim()}
-                        className="gap-2"
-                      >
-                        {addAdminMutation.isPending ? (
-                          <>
-                            <Activity className="h-4 w-4 animate-spin" />
-                            Adding...
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="h-4 w-4" />
-                            Add
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Current Admins List */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Current Admins
-                  </h3>
-                  {adminsLoading ? (
-                    <div className="space-y-2">
-                      {[1, 2].map((i) => (
-                        <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
-                          <Skeleton className="h-4 flex-1" />
-                          <Skeleton className="h-8 w-20" />
-                        </div>
-                      ))}
-                    </div>
-                  ) : adminsError ? (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Failed to load admin list. {adminsError instanceof Error ? adminsError.message : 'Please try again later.'}
-                      </AlertDescription>
-                    </Alert>
-                  ) : !admins || admins.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No admins found</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {admins.map((admin) => (
-                        <div
-                          key={admin.toString()}
-                          className="flex items-center gap-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1 font-mono text-sm break-all">
-                            {admin.toString()}
-                          </div>
-                          {identity && admin.toString() === identity.getPrincipal().toString() && (
-                            <Badge variant="outline" className="shrink-0">You</Badge>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRemoveAdmin(admin)}
-                            disabled={removeAdminMutation.isPending || admins.length === 1}
-                            className="gap-2 shrink-0"
-                          >
-                            <UserMinus className="h-4 w-4" />
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                      {admins.length === 1 && (
-                        <p className="text-xs text-muted-foreground italic">
-                          Cannot remove the last admin. Add another admin first.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Not Authorized Message */}
-            {!canManageAdmins && !noAdminsExist && (
-              <div className="p-4 border rounded-lg bg-muted/30">
-                <p className="text-sm text-muted-foreground">
-                  You must be an admin or the app owner to manage the admin allowlist.
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
-        {/* Users (Planned) Section */}
+        {/* Users Section - Planned */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarClock className="h-5 w-5" />
-              Users (Planned)
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-muted-foreground">User Management</CardTitle>
+              <Badge variant="outline">Planned</Badge>
+            </div>
             <CardDescription>
-              Comprehensive user management coming in a future phase
+              View and manage all registered users in the marketplace
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-              <p className="text-sm text-muted-foreground">
-                End-to-end user lifecycle management is planned for a later phase. This will include:
-              </p>
-              <ul className="list-disc list-inside ml-2 space-y-1 text-sm text-muted-foreground">
-                <li>User directory and browsing</li>
-                <li>Advanced user permissions and role management</li>
-                <li>User activity tracking and analytics</li>
-                <li>User moderation and content management</li>
-              </ul>
-              <p className="text-sm text-muted-foreground italic">
-                Currently, users are managed through Internet Identity authentication and vendor profiles.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              User management features will be available in a future phase. This will include viewing user profiles, activity logs, and user-specific actions.
+            </p>
           </CardContent>
         </Card>
 
         {/* Upgrade Diagnostics Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Upgrade Diagnostics
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              <CardTitle>Upgrade Diagnostics</CardTitle>
+            </div>
+            <CardDescription>
+              Backend state summary and upgrade information (Admin or App Owner only)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {summaryLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
               </div>
             ) : summaryError ? (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Failed to load upgrade summary. {summaryError instanceof Error ? summaryError.message : 'Please try again later.'}
+                  {summaryError instanceof Error ? summaryError.message : 'Failed to load upgrade summary'}
                 </AlertDescription>
               </Alert>
             ) : upgradeSummary ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Version</p>
-                  <p className="text-2xl font-bold">{upgradeSummary.version.toString()}</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Schema Version</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.version.toString()}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Vendor Count</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.vendorCount.toString()}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Product Count</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.productCount.toString()}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Last Vendor ID</p>
+                    <p className="text-2xl font-bold">{upgradeSummary.lastVendorId.toString()}</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Vendors</p>
-                  <p className="text-2xl font-bold">{upgradeSummary.vendorCount.toString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Products</p>
-                  <p className="text-2xl font-bold">{upgradeSummary.productCount.toString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Last Vendor ID</p>
-                  <p className="text-2xl font-bold">{upgradeSummary.lastVendorId.toString()}</p>
-                </div>
+                <Alert>
+                  <Activity className="h-4 w-4" />
+                  <AlertDescription>
+                    Backend is operational. All state counters are accessible.
+                  </AlertDescription>
+                </Alert>
               </div>
-            ) : null}
+            ) : (
+              <p className="text-sm text-muted-foreground">No upgrade summary available.</p>
+            )}
           </CardContent>
         </Card>
 
         {/* Vendor Management Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Store className="h-5 w-5" />
-              Vendor Management
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Store className="h-5 w-5 text-primary" />
+              <CardTitle>Vendor Management</CardTitle>
+            </div>
+            <CardDescription>
+              Review and verify vendor profiles (Admin or App Owner only)
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3 w-64" />
-                    </div>
-                    <Skeleton className="h-9 w-24" />
-                  </div>
-                ))}
+            {vendorsLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
               </div>
-            ) : error ? (
+            ) : vendorsError ? (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Failed to load vendors. {error instanceof Error ? error.message : 'Please try again later.'}
+                  {vendorsError instanceof Error ? vendorsError.message : 'Failed to load vendors'}
                 </AlertDescription>
               </Alert>
-            ) : !vendors || vendors.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Store className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">No vendors yet</p>
-                <p className="text-sm">Vendors will appear here once they register</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
+            ) : vendors && vendors.length > 0 ? (
+              <div className="space-y-3">
                 {vendors.map((vendor) => (
-                  <div
-                    key={vendor.id.toString()}
-                    className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex-1 space-y-1">
+                  <div key={vendor.id.toString()} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold">{vendor.companyName}</p>
+                        <p className="font-medium">{vendor.companyName}</p>
                         {vendor.isVerified && (
                           <Badge variant="default" className="gap-1">
                             <CheckCircle className="h-3 w-3" />
@@ -576,9 +455,7 @@ export default function AdminPlaceholderPage() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        {vendor.user.toString()}
-                      </p>
+                      <p className="text-sm text-muted-foreground font-mono">{vendor.user.toString()}</p>
                     </div>
                     {!vendor.isVerified && canManageAdmins && (
                       <Button
@@ -587,22 +464,15 @@ export default function AdminPlaceholderPage() {
                         size="sm"
                         className="gap-2"
                       >
-                        {verifyVendorMutation.isPending ? (
-                          <>
-                            <Activity className="h-4 w-4 animate-spin" />
-                            Verifying...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="h-4 w-4" />
-                            Verify
-                          </>
-                        )}
+                        <CheckCircle className="h-4 w-4" />
+                        {verifyVendorMutation.isPending ? 'Verifying...' : 'Verify'}
                       </Button>
                     )}
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No vendors registered yet.</p>
             )}
           </CardContent>
         </Card>

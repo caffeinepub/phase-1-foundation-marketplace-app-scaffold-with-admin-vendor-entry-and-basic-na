@@ -279,6 +279,21 @@ export function useIsCallerAdmin() {
   });
 }
 
+// Admin: Check if any admins exist (public query)
+export function useHasAdmin() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ['hasAdmin'],
+    queryFn: async () => {
+      if (!actor) throw new Error('Actor not initialized');
+      return actor.hasAdmin();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
 // Admin: Get upgrade summary for diagnostics
 export function useUpgradeSummary() {
   const { actor, isFetching } = useActor();
@@ -294,8 +309,8 @@ export function useUpgradeSummary() {
   });
 }
 
-// Admin: Get all admins
-export function useGetAdmins() {
+// Admin: Get all admins (requires authorization)
+export function useGetAdmins(enabled: boolean = true) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Principal[]>({
@@ -304,7 +319,7 @@ export function useGetAdmins() {
       if (!actor) throw new Error('Actor not initialized');
       return actor.getAdmins();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && enabled,
     retry: false,
   });
 }
@@ -322,6 +337,7 @@ export function useAddAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admins'] });
       queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ['hasAdmin'] });
     },
   });
 }
@@ -339,6 +355,7 @@ export function useRemoveAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admins'] });
       queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ['hasAdmin'] });
     },
   });
 }
@@ -356,6 +373,7 @@ export function useBootstrapFirstAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admins'] });
       queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ['hasAdmin'] });
       queryClient.invalidateQueries({ queryKey: ['allVendorProfiles'] });
       queryClient.invalidateQueries({ queryKey: ['upgradeSummary'] });
     },

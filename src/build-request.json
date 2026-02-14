@@ -1,124 +1,80 @@
 {
   "kind": "build_request",
-  "title": "Refine admin allowlist management to be accessible by Admins and the App Creator (Owner), and clarify user end-to-end handling as a later phase",
+  "title": "Implement next permission step: backend caller-admin + admin-count APIs and update admin bootstrap UI",
   "priority": "normal",
   "requirements": [
     {
-      "id": "REQ-102",
-      "text": "Add a persistent “App Owner / Creator” principal to the Motoko backend and treat it as a super-admin for admin-allowlist management (bootstrap and recovery). The backend must (1) store an optional appOwner principal, (2) expose query APIs to read the appOwner and check if the caller is the appOwner, and (3) expose a one-time shared API that lets an authenticated caller claim appOwner only when no appOwner has been set yet.",
+      "id": "REQ-1",
+      "text": "Add a backend query method to check whether the *caller* is in the persisted admin allowlist, so the frontend can reliably determine admin access without needing to pass a principal.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-1"
         ],
         "quotes": [
-          "Refine it further please. Create access to allowlist by Admin and Creator of the App."
+          "Proceed to the next step please"
         ]
       },
       "acceptanceCriteria": [
-        "Backend stores an app owner/creator principal in canister state (survives upgrades).",
-        "Backend provides a query to return the current app owner (or null/none when unset).",
-        "Backend provides a query to return whether the caller is the app owner.",
-        "Backend provides a one-time claim method that sets app owner to caller only if no owner is currently set; otherwise it traps with an English error message."
+        "backend/main.mo exposes a query method named isCallerAdmin() : async Bool",
+        "isCallerAdmin() returns true iff caller exists in adminAllowlist",
+        "Method does not trap for anonymous/authenticated callers (it simply returns Bool)",
+        "Frontend can call this method successfully via the generated actor interface"
       ]
     },
     {
-      "id": "REQ-103",
-      "text": "Update backend authorization rules so that admin allowlist management can be performed by either (a) any principal currently in the admin allowlist OR (b) the app owner/creator principal. This must apply to all admin allowlist management APIs (listing admins, adding admins, removing admins, and any “set admins”/bootstrap helpers that are used for allowlist management).",
+      "id": "REQ-2",
+      "text": "Add a backend query method that allows any caller (including non-admins) to determine whether the deployment has any admins yet, so the UI can safely show the 'Claim Initial Admin' bootstrap action without calling admin-guarded endpoints.",
       "target": "backend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-1"
         ],
         "quotes": [
-          "Create access to allowlist by Admin and Creator of the App."
+          "Proceed to the next step please"
         ]
       },
       "acceptanceCriteria": [
-        "A caller who is in the admin allowlist can list/add/remove admins as before.",
-        "A caller who is the app owner can list/add/remove admins even if they are not currently in the admin allowlist.",
-        "A caller who is neither an admin nor the app owner receives a clear English unauthorized error message when attempting to manage the admin allowlist.",
-        "Existing safety constraints remain intact (e.g., cannot remove the last admin)."
+        "backend/main.mo exposes a query method (e.g., getAdminCount() : async Nat, or equivalent) that does not require admin/app-owner authorization",
+        "The method returns the current size of adminAllowlist",
+        "The method does not trap for non-admin callers",
+        "No existing admin-guarded behavior (e.g., getAdmins/addAdmin/removeAdmin) is weakened by this change"
       ]
     },
     {
-      "id": "REQ-104",
-      "text": "Update the frontend admin gating and UI so the App Owner/Creator can access admin-only flows needed for allowlist management. This includes: (1) adding React Query hooks in frontend/src/hooks/useMarketplaceQueries.ts for reading app owner state and checking whether the caller is the app owner, (2) updating frontend/src/components/auth/RequireAdmin.tsx to allow access when the caller is either an admin or the app owner, and (3) updating user-facing copy to reflect “Admin or App Owner required” where relevant.",
+      "id": "REQ-3",
+      "text": "Update the frontend admin permission flow to use the new backend methods so that (a) admin checks do not fail due to missing backend APIs and (b) the Admin Dashboard can decide whether to show 'Claim Initial Admin' without calling admin-guarded getAdmins() when the viewer is not authorized.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-3"
+          "msg-1"
         ],
         "quotes": [
-          "Create access to allowlist by Admin and Creator of the App."
+          "Proceed to the next step please"
         ]
       },
       "acceptanceCriteria": [
-        "frontend/src/hooks/useMarketplaceQueries.ts contains hooks to fetch the current app owner and whether the caller is the app owner (wired to real backend methods).",
-        "RequireAdmin allows access when the caller is admin OR app owner, and shows an Access Denied message only when the caller is neither.",
-        "All user-facing text introduced/updated by this change is in English."
-      ]
-    },
-    {
-      "id": "REQ-105",
-      "text": "Refine the Admin Dashboard admin assignment section (frontend/src/pages/AdminPlaceholderPage.tsx) to explicitly support the App Owner/Creator concept: show the current app owner principal (or “Not set”), show whether the signed-in user is the app owner, and provide a “Claim App Owner” action only when the app owner is not set. The existing admin allowlist management UI must remain available to admins, and must also be available to the app owner.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-3"
-        ],
-        "quotes": [
-          "Refine it further please. Create access to allowlist by Admin and Creator of the App."
-        ]
-      },
-      "acceptanceCriteria": [
-        "Admin Dashboard displays an “App Owner / Creator” section with the current owner principal (or a clear unset state).",
-        "When app owner is unset, an authenticated user can see and use a “Claim App Owner” button; on success the UI updates to show the new owner.",
-        "When app owner is set, the “Claim App Owner” control is hidden/disabled and the UI explains that the owner is already set.",
-        "The admin allowlist management controls are usable by either admins or the app owner, and remain blocked for non-admin/non-owner users."
-      ]
-    },
-    {
-      "id": "REQ-106",
-      "text": "Add clear UI messaging addressing end-to-end “user” handling as a later phase: provide a small “Users (Planned)” section in the Admin Dashboard explaining that broader user lifecycle/management beyond the current minimal Internet Identity login + basic user profile support will be addressed in a later phase, without implementing full user management in this change.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-3"
-        ],
-        "quotes": [
-          "Are users coming up in a later section or phase, as they too ought to be addressed by the system end to end?"
-        ]
-      },
-      "acceptanceCriteria": [
-        "Admin Dashboard includes a “Users (Planned)” section with concise English copy describing that end-to-end user management is planned for a later phase.",
-        "No new user-management CRUD, user directory, or advanced user permissions are implemented as part of this requirement."
+        "frontend/src/hooks/useMarketplaceQueries.ts uses actor.isCallerAdmin() for useIsCallerAdmin (matching the new backend API)",
+        "A new React Query hook exists to read the admin count / 'any admins exist' signal from the backend (using the new public backend query)",
+        "frontend/src/pages/AdminPlaceholderPage.tsx no longer relies on getAdmins() succeeding for unauthorized users in order to decide whether to show 'Claim Initial Admin'",
+        "When a signed-in non-admin visits /admin and no admins exist, the UI can render the 'Claim Initial Admin' action without showing an authorization error from getAdmins()",
+        "When admins already exist, the UI does not show 'Claim Initial Admin' and instead shows appropriate guidance for non-authorized users",
+        "All user-facing text related to these flows remains in English"
       ]
     }
   ],
   "constraints": [
-    "Backend must remain a single Motoko actor in backend/main.mo (no additional backend services).",
-    "Only create or update backend/migration.mo if required by the platform’s conditional migration policy.",
-    "Do not edit frontend files under frontend/src/components/ui or other paths listed as immutable in SYSTEM_CONTEXT.",
-    "Use English for any user-facing text."
+    "Respect the single-actor backend architecture: implement changes in backend/main.mo (no additional canisters).",
+    "Do not modify frontend immutable paths: frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useInternetIdentity.tsx, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, and anything under frontend/src/components/ui.",
+    "Do not weaken existing authorization checks on admin-only operations (getAdmins/setAdmins/addAdmin/removeAdmin/verifyVendor/getAllVendorProfiles/getUpgradeSummary)."
   ],
   "nonGoals": [
-    "Implementing a full end-to-end user system (registration flows beyond Internet Identity, user directory, user roles/permissions matrix, moderation, analytics, payments).",
-    "Introducing third-party authentication providers (only Internet Identity is supported).",
-    "Adding multi-organization support or complex RBAC."
+    "Implementing third-party authentication providers (only Internet Identity is supported).",
+    "Adding complex roles/permission matrices beyond the existing Admin allowlist + App Owner concept.",
+    "Adding persistence migration/stable storage changes unless strictly required for these new methods."
   ],
   "imageRequirements": {
     "required": [],
     "edits": []
-  },
-  "userProfileUpdate": {
-    "goalsToAdd": [],
-    "goalsToRemove": [],
-    "preferencesToAdd": [],
-    "preferencesToRemove": [],
-    "miscToAdd": [],
-    "miscToRemove": [],
-    "fieldsToSet": {},
-    "fieldsToDelete": []
   }
 }

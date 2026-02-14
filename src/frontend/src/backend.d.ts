@@ -59,26 +59,14 @@ export enum UserRole {
     guest = "guest"
 }
 export interface backendInterface {
-    /**
-     * / Add a new admin (guarded - app owner or admin only).
-     */
     addAdmin(adminPrincipal: Principal): Promise<void>;
     addVendorProfile(profile: VendorProfile): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    /**
-     * / Bootstrap multiple admins when list is empty (no authorization required).
-     */
     bootstrapAdmins(principals: Array<Principal>): Promise<void>;
-    /**
-     * / Bootstrap first admin when list is empty (no authorization required).
-     */
     bootstrapFirstAdmin(): Promise<void>;
     claimAppOwner(): Promise<void>;
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
-    /**
-     * / Get all admin principals (guarded - app owner or admin only).
-     */
     getAdmins(): Promise<Array<Principal>>;
     getAllVendorProfiles(): Promise<Array<VendorProfile>>;
     getAppOwner(): Promise<Principal | null>;
@@ -98,26 +86,18 @@ export interface backendInterface {
     getVendorProfileByUser(owner: Principal): Promise<VendorProfile | null>;
     getVerifiedVendorProfiles(): Promise<Array<VendorProfile>>;
     /**
-     * / Public check (for canister to canister or frontend).
+     * / Returns true if there are any admins in the system.
      */
+    hasAdmin(): Promise<boolean>;
     isAdmin(principal: Principal): Promise<boolean>;
-    /**
-     * / Internal check (needed for bootstrap).
-     */
     isAdminInternal(principal: Principal): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
     isCallerAppOwner(): Promise<boolean>;
     listPublishedProductsByVendor(vendorPrincipal: Principal): Promise<Array<Product>>;
     listVerifiedVendors(): Promise<Array<VendorProfile>>;
     ping(): Promise<boolean>;
-    /**
-     * / Remove an admin (guarded - app owner or admin only).
-     */
     removeAdmin(adminPrincipal: Principal): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
-    /**
-     * / Set the complete admin list (guarded - app owner or admin only).
-     */
     setAdmins(admins: Array<Principal>): Promise<void>;
     updateProduct(productId: ProductId, title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<void>;
     updateVendorProfile(vendorId: VendorId, companyName: string, logoUrl: string): Promise<void>;

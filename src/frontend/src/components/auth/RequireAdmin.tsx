@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertCircle, ArrowLeft } from 'lucide-react';
-import { useIsCallerAdmin, useIsCallerAppOwner } from '../../hooks/useMarketplaceQueries';
+import { useIsCallerAdmin, useIsCallerAppOwner, useHasAdmin } from '../../hooks/useMarketplaceQueries';
 import { useNavigate } from '@tanstack/react-router';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -14,11 +14,15 @@ interface RequireAdminProps {
 export default function RequireAdmin({ children }: RequireAdminProps) {
   const { data: isAdmin, isLoading: isAdminLoading, error: adminError } = useIsCallerAdmin();
   const { data: isAppOwner, isLoading: isAppOwnerLoading, error: appOwnerError } = useIsCallerAppOwner();
+  const { data: hasAdmin, isLoading: hasAdminLoading } = useHasAdmin();
   const navigate = useNavigate();
 
-  const isLoading = isAdminLoading || isAppOwnerLoading;
+  const isLoading = isAdminLoading || isAppOwnerLoading || hasAdminLoading;
   const error = adminError || appOwnerError;
   const isAuthorized = isAdmin || isAppOwner;
+
+  // Allow access if user is authorized OR if no admins exist yet (bootstrap scenario)
+  const canAccess = isAuthorized || (hasAdmin === false);
 
   if (isLoading) {
     return (
@@ -73,7 +77,7 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
     );
   }
 
-  if (!isAuthorized) {
+  if (!canAccess) {
     return (
       <div className="container mx-auto px-4 py-16">
         <Card className="max-w-2xl mx-auto">
@@ -98,8 +102,7 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
             <div className="space-y-2 text-sm text-muted-foreground">
               <p className="font-medium">To gain admin access:</p>
               <ul className="list-disc list-inside ml-2 space-y-1">
-                <li>If this is a new deployment, claim app ownership or use the "Claim Initial Admin" feature</li>
-                <li>If admins already exist, ask an existing admin or the app owner to add your principal to the allowlist</li>
+                <li>Ask an existing admin or the app owner to add your principal to the allowlist</li>
                 <li>Contact the platform administrator for assistance</li>
               </ul>
             </div>

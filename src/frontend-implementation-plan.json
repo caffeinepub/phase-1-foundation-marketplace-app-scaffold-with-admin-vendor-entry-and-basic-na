@@ -1,68 +1,34 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Enable App Owner/Creator access to admin allowlist management UI and add planned users messaging",
+  "title": "Update admin bootstrap UI to use public admin-existence signal and caller-admin checks",
   "requirements": [
     {
-      "id": "REQ-104",
-      "summary": "Add React Query hooks for app owner state and update admin gating to allow Admin OR App Owner access with updated copy.",
+      "id": "REQ-3",
+      "summary": "Update frontend admin permission flow to use the new backend caller-admin and admin-count/has-admin queries, avoiding unauthorized getAdmins() calls for bootstrap decisions.",
       "acceptanceCriteria": [
-        "frontend/src/hooks/useMarketplaceQueries.ts contains hooks to fetch the current app owner and whether the caller is the app owner (wired to real backend methods).",
-        "RequireAdmin allows access when the caller is admin OR app owner, and shows an Access Denied message only when the caller is neither.",
-        "All user-facing text introduced/updated by this change is in English."
+        "frontend/src/hooks/useMarketplaceQueries.ts uses actor.isCallerAdmin() for useIsCallerAdmin (matching the new backend API)",
+        "A new React Query hook exists to read the admin count / 'any admins exist' signal from the backend (using the new public backend query)",
+        "frontend/src/pages/AdminPlaceholderPage.tsx no longer relies on getAdmins() succeeding for unauthorized users in order to decide whether to show 'Claim Initial Admin'",
+        "When a signed-in non-admin visits /admin and no admins exist, the UI can render the 'Claim Initial Admin' action without showing an authorization error from getAdmins()",
+        "When admins already exist, the UI does not show 'Claim Initial Admin' and instead shows appropriate guidance for non-authorized users",
+        "All user-facing text related to these flows remains in English"
       ],
       "file_operations": [
         {
           "path": "frontend/src/hooks/useMarketplaceQueries.ts",
           "operation": "modify",
-          "description": "Add React Query hooks for app owner support: a query hook to fetch current app owner (actor.getAppOwner), a query hook to check whether the caller is the app owner (actor.isCallerAppOwner), and a mutation hook to claim app owner (actor.claimAppOwner) with appropriate cache invalidation (e.g., appOwner and isCallerAppOwner). Use the authorization component patterns for authenticated actor usage and error handling; verify the component's usage instructions before implementing."
+          "description": "Add a new React Query hook to read the public \"any admins exist\" signal from the backend (e.g., actor.hasAdmin() or equivalent) and, if needed, update the existing useGetAdmins hook to support disabling the query for unauthorized viewers so AdminPlaceholderPage can avoid calling admin-guarded methods."
         },
         {
           "path": "frontend/src/components/auth/RequireAdmin.tsx",
           "operation": "modify",
-          "description": "Update the admin guard to allow access when the caller is an admin OR the app owner by combining useIsCallerAdmin with the new useIsCallerAppOwner hook. Update Access Denied copy to clearly state 'Admin or App Owner required' and keep all new/updated user-facing text in English. Use existing shadcn-ui building blocks already present in this component; verify the component's usage instructions before implementing."
+          "description": "Update the /admin guard logic to incorporate the public \"any admins exist\" signal: if no admins exist yet, allow rendering the admin bootstrap UI (or render a dedicated in-guard bootstrap call-to-action) even when the viewer is not currently an admin/app owner; otherwise, keep the existing access-denied behavior for non-authorized users."
         },
-        {
-          "path": "frontend/src/components/layout/HeaderNav.tsx",
-          "operation": "modify",
-          "description": "Update the header nav's Admin link visibility/tooltip logic to consider app owner status (admin OR app owner can see the enabled Admin link; otherwise show the disabled button with updated tooltip/copy). Use the new useIsCallerAppOwner hook; verify the component's usage instructions before implementing."
-        },
-        {
-          "path": "frontend/src/pages/RoleSelectPage.tsx",
-          "operation": "modify",
-          "description": "Update admin role selection gating so Admin mode is available when the user is an admin OR the app owner. Update the on-screen messaging to reflect 'Admin or App Owner required' where appropriate and keep text in English. Verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-105",
-      "summary": "Enhance Admin Dashboard to display/claim App Owner and ensure allowlist management works for Admins and App Owner.",
-      "acceptanceCriteria": [
-        "Admin Dashboard displays an “App Owner / Creator” section with the current owner principal (or a clear unset state).",
-        "When app owner is unset, an authenticated user can see and use a “Claim App Owner” button; on success the UI updates to show the new owner.",
-        "When app owner is set, the “Claim App Owner” control is hidden/disabled and the UI explains that the owner is already set.",
-        "The admin allowlist management controls are usable by either admins or the app owner, and remain blocked for non-admin/non-owner users."
-      ],
-      "file_operations": [
         {
           "path": "frontend/src/pages/AdminPlaceholderPage.tsx",
           "operation": "modify",
-          "description": "Add an “App Owner / Creator” section that (1) shows the current app owner principal (or 'Not set'), (2) indicates whether the signed-in user is the app owner, and (3) shows a 'Claim App Owner' action only when no owner is set, using the new hooks (getAppOwner, isCallerAppOwner, claimAppOwner) and updating UI state after successful claim. Update admin allowlist management gating from admin-only to (admin OR app owner), and ensure non-admin/non-owner users still cannot use allowlist actions. Also update other admin-only sections on this page to treat app owner as authorized where they currently require admin, to avoid granting page access but showing admin-only denials. Use existing shadcn-ui components already used on the page; verify the component's usage instructions before implementing."
-        }
-      ]
-    },
-    {
-      "id": "REQ-106",
-      "summary": "Add an Admin Dashboard “Users (Planned)” section describing user management as a later phase without implementing user CRUD.",
-      "acceptanceCriteria": [
-        "Admin Dashboard includes a “Users (Planned)” section with concise English copy describing that end-to-end user management is planned for a later phase.",
-        "No new user-management CRUD, user directory, or advanced user permissions are implemented as part of this requirement."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/AdminPlaceholderPage.tsx",
-          "operation": "modify",
-          "description": "Add a small “Users (Planned)” section/card in the Admin Dashboard with concise English copy explaining broader end-to-end user lifecycle/management is planned for a later phase, explicitly avoiding any implementation of user-management CRUD, user directory browsing, or advanced user permissions. Use existing shadcn-ui components already used on the page; verify the component's usage instructions before implementing."
+          "description": "Refactor admin bootstrap decision logic to use the new public \"any admins exist\" hook instead of relying on getAdmins() for unauthorized users; ensure getAdmins() is only executed when the viewer is authorized (admin/app owner) for admin management UI, and keep all user-facing text in English."
         }
       ]
     }
