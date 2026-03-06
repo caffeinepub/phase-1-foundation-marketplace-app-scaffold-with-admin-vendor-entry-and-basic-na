@@ -9,6 +9,8 @@ import Auth "authorization/access-control";
 import Map "mo:core/Map";
 import MixinAuthorization "authorization/MixinAuthorization";
 
+
+
 actor {
   type Env = {
     #dev;
@@ -95,6 +97,12 @@ actor {
     name : Text;
   };
 
+  // New type for admin-only getAllUserProfiles call
+  public type UserProfileWithPrincipal = {
+    principal : Principal;
+    profile : UserProfile;
+  };
+
   private func isAppOwnerOrAdmin(caller : Principal) : Bool {
     let isOwner = switch (appOwner) {
       case (?owner) { caller == owner };
@@ -114,8 +122,7 @@ actor {
     stableLastProductId := lastProductId;
   };
 
-  system func postupgrade() {
-  };
+  system func postupgrade() {};
 
   public query ({ caller }) func ping() : async Bool { true };
   public query ({ caller }) func whoami() : async Principal { caller };
@@ -161,6 +168,24 @@ actor {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
+  };
+
+  // New admin-only query to get all user profiles.
+  public query ({ caller }) func getAllUserProfiles() : async [UserProfileWithPrincipal] {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admins can access all user profiles");
+    };
+
+    userProfiles.entries().toArray().map<(Principal, UserProfile), UserProfileWithPrincipal>(
+      func((principal, profile)) {
+        { principal; profile };
+      }
+    );
+  };
+
+  // New query function to get total user count.
+  public query ({ caller }) func getTotalUserCount() : async Nat {
+    userProfiles.size();
   };
 
   public query ({ caller }) func getTotalVendorCount() : async Nat {

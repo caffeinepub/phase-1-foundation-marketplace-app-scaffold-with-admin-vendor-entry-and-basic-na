@@ -4,6 +4,7 @@ import type {
   Product,
   ProductId,
   UpgradeSummary,
+  UserProfileWithPrincipal,
   VendorId,
   VendorProfile,
 } from "../backend";
@@ -447,5 +448,35 @@ export function useClaimAppOwner() {
       queryClient.invalidateQueries({ queryKey: ["appOwner"] });
       queryClient.invalidateQueries({ queryKey: ["isCallerAppOwner"] });
     },
+  });
+}
+
+// Admin: Get all user profiles (requires authorization)
+export function useAllUserProfiles(enabled = true) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<UserProfileWithPrincipal[]>({
+    queryKey: ["allUserProfiles"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getAllUserProfiles();
+    },
+    enabled: !!actor && !isFetching && enabled,
+    retry: false,
+  });
+}
+
+// Public: Get total user count
+export function useTotalUserCount() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<bigint>({
+    queryKey: ["totalUserCount"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getTotalUserCount();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
   });
 }

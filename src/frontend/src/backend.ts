@@ -95,6 +95,10 @@ export interface BackendMetadata {
 }
 export type Money = bigint;
 export type Timestamp = bigint;
+export interface UserProfileWithPrincipal {
+    principal: Principal;
+    profile: UserProfile;
+}
 export type Name = string;
 export type Url = string;
 export interface UpgradeSummary {
@@ -151,6 +155,7 @@ export interface backendInterface {
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
     getAdmins(): Promise<Array<Principal>>;
+    getAllUserProfiles(): Promise<Array<UserProfileWithPrincipal>>;
     getAllVendorProfiles(): Promise<Array<VendorProfile>>;
     getAppOwner(): Promise<Principal | null>;
     getBackendMetadata(): Promise<BackendMetadata>;
@@ -160,6 +165,7 @@ export interface backendInterface {
     getCallerVendorProfile(): Promise<VendorProfile | null>;
     getProductById(productId: ProductId): Promise<Product | null>;
     getPublishedProducts(): Promise<Array<Product>>;
+    getTotalUserCount(): Promise<bigint>;
     getTotalVendorCount(): Promise<bigint>;
     getUpgradeSummary(): Promise<UpgradeSummary>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
@@ -331,6 +337,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getAllUserProfiles(): Promise<Array<UserProfileWithPrincipal>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllUserProfiles();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllUserProfiles();
+            return result;
+        }
+    }
     async getAllVendorProfiles(): Promise<Array<VendorProfile>> {
         if (this.processError) {
             try {
@@ -454,6 +474,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getPublishedProducts();
+            return result;
+        }
+    }
+    async getTotalUserCount(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getTotalUserCount();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getTotalUserCount();
             return result;
         }
     }

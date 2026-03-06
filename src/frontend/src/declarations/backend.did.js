@@ -24,6 +24,11 @@ export const UserRole = IDL.Variant({
   'guest' : IDL.Null,
 });
 export const ProductId = IDL.Nat;
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
+export const UserProfileWithPrincipal = IDL.Record({
+  'principal' : IDL.Principal,
+  'profile' : UserProfile,
+});
 export const Version = IDL.Text;
 export const Env = IDL.Variant({ 'dev' : IDL.Null, 'prod' : IDL.Null });
 export const BackendMetadata = IDL.Record({
@@ -46,7 +51,6 @@ export const Product = IDL.Record({
   'category' : IDL.Text,
   'price' : Money,
 });
-export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const UpgradeSummary = IDL.Record({
   'lastProductId' : IDL.Nat,
   'productCount' : IDL.Nat,
@@ -70,6 +74,11 @@ export const idlService = IDL.Service({
     ),
   'createVendorProfile' : IDL.Func([IDL.Text, IDL.Text], [VendorId], []),
   'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+  'getAllUserProfiles' : IDL.Func(
+      [],
+      [IDL.Vec(UserProfileWithPrincipal)],
+      ['query'],
+    ),
   'getAllVendorProfiles' : IDL.Func([], [IDL.Vec(VendorProfile)], ['query']),
   'getAppOwner' : IDL.Func([], [IDL.Opt(IDL.Principal)], ['query']),
   'getBackendMetadata' : IDL.Func([], [BackendMetadata], ['query']),
@@ -79,6 +88,7 @@ export const idlService = IDL.Service({
   'getCallerVendorProfile' : IDL.Func([], [IDL.Opt(VendorProfile)], ['query']),
   'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
   'getPublishedProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
+  'getTotalUserCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getTotalVendorCount' : IDL.Func([], [IDL.Nat], ['query']),
   'getUpgradeSummary' : IDL.Func([], [UpgradeSummary], ['query']),
   'getUserProfile' : IDL.Func(
@@ -165,6 +175,11 @@ export const idlFactory = ({ IDL }) => {
     'guest' : IDL.Null,
   });
   const ProductId = IDL.Nat;
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
+  const UserProfileWithPrincipal = IDL.Record({
+    'principal' : IDL.Principal,
+    'profile' : UserProfile,
+  });
   const Version = IDL.Text;
   const Env = IDL.Variant({ 'dev' : IDL.Null, 'prod' : IDL.Null });
   const BackendMetadata = IDL.Record({
@@ -187,7 +202,6 @@ export const idlFactory = ({ IDL }) => {
     'category' : IDL.Text,
     'price' : Money,
   });
-  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const UpgradeSummary = IDL.Record({
     'lastProductId' : IDL.Nat,
     'productCount' : IDL.Nat,
@@ -211,6 +225,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'createVendorProfile' : IDL.Func([IDL.Text, IDL.Text], [VendorId], []),
     'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
+    'getAllUserProfiles' : IDL.Func(
+        [],
+        [IDL.Vec(UserProfileWithPrincipal)],
+        ['query'],
+      ),
     'getAllVendorProfiles' : IDL.Func([], [IDL.Vec(VendorProfile)], ['query']),
     'getAppOwner' : IDL.Func([], [IDL.Opt(IDL.Principal)], ['query']),
     'getBackendMetadata' : IDL.Func([], [BackendMetadata], ['query']),
@@ -224,6 +243,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
     'getPublishedProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
+    'getTotalUserCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getTotalVendorCount' : IDL.Func([], [IDL.Nat], ['query']),
     'getUpgradeSummary' : IDL.Func([], [UpgradeSummary], ['query']),
     'getUserProfile' : IDL.Func(

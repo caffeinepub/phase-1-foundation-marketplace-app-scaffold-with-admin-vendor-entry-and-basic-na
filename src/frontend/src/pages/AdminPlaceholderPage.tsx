@@ -15,10 +15,12 @@ import { Principal } from "@dfinity/principal";
 import {
   Activity,
   AlertCircle,
+  ArrowRight,
   CalendarClock,
   CheckCircle,
   Crown,
   Database,
+  Info,
   Shield,
   Store,
   UserMinus,
@@ -30,6 +32,7 @@ import type { VendorId } from "../backend";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAddAdmin,
+  useAllUserProfiles,
   useAllVendorProfiles,
   useBootstrapFirstAdmin,
   useClaimAppOwner,
@@ -39,6 +42,7 @@ import {
   useIsCallerAdmin,
   useIsCallerAppOwner,
   useRemoveAdmin,
+  useTotalUserCount,
   useUpgradeSummary,
   useVerifyVendor,
 } from "../hooks/useMarketplaceQueries";
@@ -71,6 +75,13 @@ export default function AdminPlaceholderPage() {
     isLoading: adminsLoading,
     error: adminsError,
   } = useGetAdmins(isAuthorized);
+
+  const { data: totalUserCount } = useTotalUserCount();
+  const {
+    data: userProfiles,
+    isLoading: usersLoading,
+    error: usersError,
+  } = useAllUserProfiles(isAuthorized);
 
   const verifyVendorMutation = useVerifyVendor();
   const addAdminMutation = useAddAdmin();
@@ -245,6 +256,7 @@ export default function AdminPlaceholderPage() {
                 </Alert>
                 {isAuthenticated && (
                   <Button
+                    data-ocid="admin.claim_app_owner.button"
                     onClick={handleClaimAppOwner}
                     disabled={claimAppOwnerMutation.isPending}
                     className="gap-2"
@@ -296,6 +308,7 @@ export default function AdminPlaceholderPage() {
                   </AlertDescription>
                 </Alert>
                 <Button
+                  data-ocid="admin.bootstrap_admin.button"
                   onClick={handleBootstrapFirstAdmin}
                   disabled={bootstrapFirstAdminMutation.isPending}
                   className="gap-2"
@@ -373,6 +386,7 @@ export default function AdminPlaceholderPage() {
                   <Label htmlFor="newAdminPrincipal">Add New Admin</Label>
                   <div className="flex gap-2">
                     <Input
+                      data-ocid="admin.add_admin.input"
                       id="newAdminPrincipal"
                       placeholder="Enter principal ID"
                       value={newAdminPrincipal}
@@ -380,6 +394,7 @@ export default function AdminPlaceholderPage() {
                       className="font-mono text-sm"
                     />
                     <Button
+                      data-ocid="admin.add_admin.button"
                       onClick={handleAddAdmin}
                       disabled={
                         addAdminMutation.isPending || !newAdminPrincipal.trim()
@@ -414,26 +429,91 @@ export default function AdminPlaceholderPage() {
           </CardContent>
         </Card>
 
-        {/* Users Section - Planned */}
+        {/* User Management Section */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <CardTitle className="text-muted-foreground">
-                User Management
-              </CardTitle>
-              <Badge variant="outline">Planned</Badge>
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>User Management</CardTitle>
+              {totalUserCount !== undefined && (
+                <Badge variant="secondary">
+                  {totalUserCount.toString()} registered
+                </Badge>
+              )}
             </div>
             <CardDescription>
-              View and manage all registered users in the marketplace
+              View all registered users in the marketplace (Admin or App Owner
+              only)
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              User management features will be available in a future phase. This
-              will include viewing user profiles, activity logs, and
-              user-specific actions.
-            </p>
+          <CardContent data-ocid="admin.users.panel">
+            {usersLoading ? (
+              <div data-ocid="admin.users.loading_state" className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : usersError ? (
+              <Alert variant="destructive" data-ocid="admin.users.error_state">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {usersError instanceof Error
+                    ? usersError.message
+                    : "Failed to load users. Admin or App Owner privileges required."}
+                </AlertDescription>
+              </Alert>
+            ) : !isAuthorized ? (
+              <Alert data-ocid="admin.users.error_state">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Admin or App Owner privileges required to view users.
+                </AlertDescription>
+              </Alert>
+            ) : userProfiles && userProfiles.length > 0 ? (
+              <div data-ocid="admin.users.list" className="space-y-2">
+                {userProfiles.map((entry, index) => (
+                  <div
+                    key={entry.principal.toString()}
+                    data-ocid={`admin.users.item.${index + 1}`}
+                    className="flex items-center gap-3 p-3 bg-muted rounded-lg"
+                  >
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 shrink-0">
+                      <Users className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {entry.profile.name || "Anonymous User"}
+                      </p>
+                      <code className="text-xs font-mono text-muted-foreground truncate block">
+                        {entry.principal.toString()}
+                      </code>
+                    </div>
+                    {identity &&
+                      entry.principal.toString() ===
+                        identity.getPrincipal().toString() && (
+                        <Badge variant="default" className="shrink-0">
+                          You
+                        </Badge>
+                      )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                data-ocid="admin.users.empty_state"
+                className="flex flex-col items-center justify-center py-8 text-center"
+              >
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-3">
+                  <CalendarClock className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No registered users yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Users will appear here once they sign in and create profiles.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -450,69 +530,120 @@ export default function AdminPlaceholderPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {summaryLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ) : summaryError ? (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {summaryError instanceof Error
-                    ? summaryError.message
-                    : "Failed to load upgrade summary"}
-                </AlertDescription>
-              </Alert>
-            ) : upgradeSummary ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Schema Version
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {upgradeSummary.version.toString()}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Vendor Count
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {upgradeSummary.vendorCount.toString()}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Product Count
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {upgradeSummary.productCount.toString()}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      Last Vendor ID
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {upgradeSummary.lastVendorId.toString()}
-                    </p>
-                  </div>
+            <div
+              data-ocid="admin.upgrade_diagnostics.panel"
+              className="space-y-4"
+            >
+              {summaryLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
                 </div>
-                <Alert>
-                  <Activity className="h-4 w-4" />
+              ) : summaryError ? (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Backend is operational. All state counters are accessible.
+                    {summaryError instanceof Error
+                      ? summaryError.message
+                      : "Failed to load upgrade summary"}
                   </AlertDescription>
                 </Alert>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No upgrade summary available.
-              </p>
-            )}
+              ) : upgradeSummary ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        Schema Version
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {upgradeSummary.version.toString()}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        Vendor Count
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {upgradeSummary.vendorCount.toString()}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        Product Count
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {upgradeSummary.productCount.toString()}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        Last Vendor ID
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {upgradeSummary.lastVendorId.toString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Upgrade Guidance */}
+                  <div
+                    data-ocid="upgrade_diagnostics.panel"
+                    className="grid sm:grid-cols-2 gap-3"
+                  >
+                    {/* Before upgrading */}
+                    <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        <Info className="h-3.5 w-3.5" />
+                        Before Upgrading
+                      </div>
+                      <ul className="space-y-1.5">
+                        <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <ArrowRight className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" />
+                          Note current vendor count (
+                          {upgradeSummary.vendorCount.toString()}) and product
+                          count ({upgradeSummary.productCount.toString()})
+                        </li>
+                        <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <ArrowRight className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" />
+                          Verify the app loads and /admin is accessible
+                        </li>
+                      </ul>
+                    </div>
+                    {/* After upgrading */}
+                    <div className="rounded-lg bg-muted/50 border border-border/50 p-3 space-y-2">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                        After Upgrading
+                      </div>
+                      <ul className="space-y-1.5">
+                        <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <ArrowRight className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" />
+                          Confirm vendor count and product count match
+                          pre-upgrade values
+                        </li>
+                        <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <ArrowRight className="h-3 w-3 mt-0.5 shrink-0 text-primary/60" />
+                          Verify /admin is accessible and counts are displayed
+                          correctly
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <Alert>
+                    <Activity className="h-4 w-4" />
+                    <AlertDescription>
+                      Backend is operational. All state counters are accessible.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No upgrade summary available.
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 

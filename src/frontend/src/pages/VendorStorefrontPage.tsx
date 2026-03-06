@@ -17,7 +17,9 @@ import {
   ShieldCheck,
   Store,
 } from "lucide-react";
+import type { Product } from "../backend";
 import {
+  useListPublishedProductsByVendor,
   useVendorProducts,
   useVendorProfileById,
 } from "../hooks/useMarketplaceQueries";
@@ -37,10 +39,32 @@ export default function VendorStorefrontPage() {
     error: vendorError,
   } = useVendorProfileById(vendorIdBigInt);
   const {
-    data: products,
-    isLoading: productsLoading,
-    error: productsError,
+    data: productsByVendorId,
+    isLoading: productsLoadingById,
+    error: productsErrorById,
   } = useVendorProducts(vendorIdBigInt);
+  // Also fetch by principal (new discovery API) once vendor profile is loaded
+  const { data: productsByPrincipal, isLoading: productsLoadingByPrincipal } =
+    useListPublishedProductsByVendor(vendor?.user);
+
+  // Merge and deduplicate products from both lookup methods
+  const products = (() => {
+    const byId: Product[] = productsByVendorId ?? [];
+    const byPrincipal: Product[] = productsByPrincipal ?? [];
+    const seen = new Set<string>();
+    const merged: Product[] = [];
+    for (const p of [...byId, ...byPrincipal]) {
+      const key = p.id.toString();
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(p);
+      }
+    }
+    return merged;
+  })();
+
+  const productsLoading = productsLoadingById || productsLoadingByPrincipal;
+  const productsError = productsErrorById;
 
   const formatPrice = (price: bigint, currency: string) => {
     const priceNum = Number(price) / 100;

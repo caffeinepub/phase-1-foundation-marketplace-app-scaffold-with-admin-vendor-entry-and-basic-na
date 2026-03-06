@@ -12,6 +12,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, CheckCircle, Loader2, Shield, User } from "lucide-react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
+  useHasAdmin,
   useIsCallerAdmin,
   useIsCallerAppOwner,
 } from "../hooks/useMarketplaceQueries";
@@ -23,10 +24,15 @@ export default function RoleSelectPage() {
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
   const { data: isAppOwner, isLoading: isAppOwnerLoading } =
     useIsCallerAppOwner();
+  const { data: hasAdmin, isLoading: hasAdminLoading } = useHasAdmin();
   const navigate = useNavigate();
 
   const isAuthorized = isAdmin || isAppOwner;
-  const isAuthLoading = isAdminLoading || isAppOwnerLoading;
+  const isAuthLoading = isAdminLoading || isAppOwnerLoading || hasAdminLoading;
+
+  // Allow navigation to /admin even when not yet authorized if no admins exist yet
+  // (bootstrap scenario — RequireAdmin will let them through to claim)
+  const canNavigateToAdmin = isAuthorized || hasAdmin === false;
 
   const handleRoleSelect = (role: "admin" | "vendor") => {
     setRoleMode(role);
@@ -49,8 +55,11 @@ export default function RoleSelectPage() {
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card
-            className={`hover:border-primary transition-colors ${!isAuthLoading && !isAuthorized ? "opacity-60" : "cursor-pointer"}`}
-            onClick={() => isAuthorized && handleRoleSelect("admin")}
+            data-ocid="role_select.admin.card"
+            className={`transition-colors ${canNavigateToAdmin || isAuthLoading ? "hover:border-primary cursor-pointer" : "opacity-60"}`}
+            onClick={() =>
+              canNavigateToAdmin && !isAuthLoading && handleRoleSelect("admin")
+            }
           >
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -65,6 +74,11 @@ export default function RoleSelectPage() {
                     <Badge variant="default" className="gap-1">
                       <CheckCircle className="h-3 w-3" />
                       Authorized
+                    </Badge>
+                  ) : hasAdmin === false ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <Shield className="h-3 w-3" />
+                      Setup Required
                     </Badge>
                   ) : (
                     <Badge
@@ -83,20 +97,47 @@ export default function RoleSelectPage() {
             </CardHeader>
             <CardContent>
               {isAuthLoading ? (
-                <Button className="w-full" size="lg" disabled>
+                <Button
+                  data-ocid="role_select.admin.button"
+                  className="w-full"
+                  size="lg"
+                  disabled
+                >
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Checking Authorization...
                 </Button>
               ) : isAuthorized ? (
                 <Button
+                  data-ocid="role_select.admin.button"
                   className="w-full"
                   size="lg"
-                  onClick={() => handleRoleSelect("admin")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRoleSelect("admin");
+                  }}
                 >
                   Continue as Admin
                 </Button>
+              ) : hasAdmin === false ? (
+                <Button
+                  data-ocid="role_select.admin.button"
+                  className="w-full"
+                  size="lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRoleSelect("admin");
+                  }}
+                >
+                  Claim Admin Access
+                </Button>
               ) : (
-                <Button className="w-full" size="lg" disabled variant="outline">
+                <Button
+                  data-ocid="role_select.admin.button"
+                  className="w-full"
+                  size="lg"
+                  disabled
+                  variant="outline"
+                >
                   Admin or App Owner Access Required
                 </Button>
               )}
@@ -109,13 +150,28 @@ export default function RoleSelectPage() {
                   <li>Analytics and reporting</li>
                 </ul>
               </div>
-              {!isAuthLoading && !isAuthorized && (
-                <Alert className="mt-4">
+              {!isAuthLoading && !isAuthorized && hasAdmin !== false && (
+                <Alert
+                  className="mt-4"
+                  data-ocid="role_select.admin.error_state"
+                >
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    Your principal is not the app owner and is not in the admin
-                    allowlist. Contact an existing admin or claim app ownership
-                    to request access.
+                    Your principal is not in the admin allowlist. Ask an
+                    existing admin to add you, or contact the app owner for
+                    access.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {!isAuthLoading && hasAdmin === false && (
+                <Alert
+                  className="mt-4"
+                  data-ocid="role_select.admin.success_state"
+                >
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    No admins have been set up yet. Click above to claim initial
+                    admin or app owner privileges.
                   </AlertDescription>
                 </Alert>
               )}

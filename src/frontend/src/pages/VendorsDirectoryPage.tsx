@@ -11,12 +11,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, ShieldCheck, Store } from "lucide-react";
-import { useVerifiedVendors } from "../hooks/useMarketplaceQueries";
+import { useListVerifiedVendors } from "../hooks/useMarketplaceQueries";
 import { VENDOR_LOGO_PLACEHOLDER } from "../utils/placeholders";
 
 export default function VendorsDirectoryPage() {
   const navigate = useNavigate();
-  const { data: vendors, isLoading, error } = useVerifiedVendors();
+  const { data: vendors, isLoading, error } = useListVerifiedVendors();
 
   const handleVendorClick = (vendorId: bigint) => {
     navigate({

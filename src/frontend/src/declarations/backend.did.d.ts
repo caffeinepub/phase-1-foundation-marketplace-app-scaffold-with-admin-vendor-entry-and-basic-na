@@ -40,6 +40,10 @@ export interface UpgradeSummary {
 }
 export type Url = string;
 export interface UserProfile { 'name' : string }
+export interface UserProfileWithPrincipal {
+  'principal' : Principal,
+  'profile' : UserProfile,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -66,6 +70,7 @@ export interface _SERVICE {
   >,
   'createVendorProfile' : ActorMethod<[string, string], VendorId>,
   'getAdmins' : ActorMethod<[], Array<Principal>>,
+  'getAllUserProfiles' : ActorMethod<[], Array<UserProfileWithPrincipal>>,
   'getAllVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
   'getAppOwner' : ActorMethod<[], [] | [Principal]>,
   'getBackendMetadata' : ActorMethod<[], BackendMetadata>,
@@ -75,6 +80,7 @@ export interface _SERVICE {
   'getCallerVendorProfile' : ActorMethod<[], [] | [VendorProfile]>,
   'getProductById' : ActorMethod<[ProductId], [] | [Product]>,
   'getPublishedProducts' : ActorMethod<[], Array<Product>>,
+  'getTotalUserCount' : ActorMethod<[], bigint>,
   'getTotalVendorCount' : ActorMethod<[], bigint>,
   'getUpgradeSummary' : ActorMethod<[], UpgradeSummary>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
