@@ -1,16 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
-import { useActor } from './useActor';
-import { useInternetIdentity } from './useInternetIdentity';
-import type { Principal } from '@icp-sdk/core/principal';
-import type { BackendMetadata } from '../backend';
+import type { Principal } from "@icp-sdk/core/principal";
+import { useQuery } from "@tanstack/react-query";
+import type { BackendMetadata } from "../backend";
+import { useActor } from "./useActor";
+import { useInternetIdentity } from "./useInternetIdentity";
 
 export function useBackendStatus() {
   const { actor, isFetching } = useActor();
 
   return useQuery<BackendMetadata>({
-    queryKey: ['backendStatus'],
+    queryKey: ["backendStatus"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getBackendMetadata();
     },
     enabled: !!actor && !isFetching,
@@ -22,13 +22,13 @@ export function useBackendRunning() {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['backendRunning'],
+    queryKey: ["backendRunning"],
     queryFn: async () => {
       if (!actor) return false;
       try {
         const result = await actor.ping();
         return result;
-      } catch (error) {
+      } catch (_error) {
         // Return false instead of throwing when ping fails
         return false;
       }
@@ -44,9 +44,9 @@ export function useWhoAmI() {
   const { identity } = useInternetIdentity();
 
   return useQuery<Principal>({
-    queryKey: ['whoAmI'],
+    queryKey: ["whoAmI"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.whoami();
     },
     enabled: !!actor && !isFetching && !!identity,

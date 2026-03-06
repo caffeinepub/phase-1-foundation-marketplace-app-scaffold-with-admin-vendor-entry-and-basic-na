@@ -1,16 +1,23 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useActor } from './useActor';
-import type { VendorProfile, VendorId, Product, ProductId, UpgradeSummary } from '../backend';
-import { Principal } from '@dfinity/principal';
+import type { Principal } from "@dfinity/principal";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type {
+  Product,
+  ProductId,
+  UpgradeSummary,
+  VendorId,
+  VendorProfile,
+} from "../backend";
+import { useActor } from "./useActor";
+import { useInternetIdentity } from "./useInternetIdentity";
 
 // Public product browsing
 export function usePublishedProducts() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Product[]>({
-    queryKey: ['publishedProducts'],
+    queryKey: ["publishedProducts"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getPublishedProducts();
     },
     enabled: !!actor && !isFetching,
@@ -22,9 +29,10 @@ export function useProductById(productId: ProductId | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Product | null>({
-    queryKey: ['product', productId?.toString()],
+    queryKey: ["product", productId?.toString()],
     queryFn: async () => {
-      if (!actor || !productId) throw new Error('Actor or productId not available');
+      if (!actor || !productId)
+        throw new Error("Actor or productId not available");
       return actor.getProductById(productId);
     },
     enabled: !!actor && !isFetching && productId !== undefined,
@@ -36,9 +44,10 @@ export function useVendorProfileById(vendorId: VendorId | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<VendorProfile | null>({
-    queryKey: ['vendorProfile', vendorId?.toString()],
+    queryKey: ["vendorProfile", vendorId?.toString()],
     queryFn: async () => {
-      if (!actor || vendorId === undefined) throw new Error('Actor or vendorId not available');
+      if (!actor || vendorId === undefined)
+        throw new Error("Actor or vendorId not available");
       return actor.getVendorProfile(vendorId);
     },
     enabled: !!actor && !isFetching && vendorId !== undefined,
@@ -50,9 +59,10 @@ export function useVendorProfileByUser(owner: Principal | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<VendorProfile | null>({
-    queryKey: ['vendorProfileByUser', owner?.toString()],
+    queryKey: ["vendorProfileByUser", owner?.toString()],
     queryFn: async () => {
-      if (!actor || !owner) throw new Error('Actor or owner principal not available');
+      if (!actor || !owner)
+        throw new Error("Actor or owner principal not available");
       return actor.getVendorProfileByUser(owner);
     },
     enabled: !!actor && !isFetching && !!owner,
@@ -65,9 +75,9 @@ export function useVerifiedVendors() {
   const { actor, isFetching } = useActor();
 
   return useQuery<VendorProfile[]>({
-    queryKey: ['verifiedVendors'],
+    queryKey: ["verifiedVendors"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getVerifiedVendorProfiles();
     },
     enabled: !!actor && !isFetching,
@@ -79,9 +89,9 @@ export function useListVerifiedVendors() {
   const { actor, isFetching } = useActor();
 
   return useQuery<VendorProfile[]>({
-    queryKey: ['listVerifiedVendors'],
+    queryKey: ["listVerifiedVendors"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.listVerifiedVendors();
     },
     enabled: !!actor && !isFetching,
@@ -93,9 +103,10 @@ export function useVendorProducts(vendorId: VendorId | undefined) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Product[]>({
-    queryKey: ['vendorProducts', vendorId?.toString()],
+    queryKey: ["vendorProducts", vendorId?.toString()],
     queryFn: async () => {
-      if (!actor || vendorId === undefined) throw new Error('Actor or vendorId not available');
+      if (!actor || vendorId === undefined)
+        throw new Error("Actor or vendorId not available");
       return actor.getVendorProductsByVendorId(vendorId);
     },
     enabled: !!actor && !isFetching && vendorId !== undefined,
@@ -104,13 +115,16 @@ export function useVendorProducts(vendorId: VendorId | undefined) {
 }
 
 // Phase 5: Vendor's published products by principal (new discovery API)
-export function useListPublishedProductsByVendor(vendorPrincipal: Principal | undefined) {
+export function useListPublishedProductsByVendor(
+  vendorPrincipal: Principal | undefined,
+) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Product[]>({
-    queryKey: ['listPublishedProductsByVendor', vendorPrincipal?.toString()],
+    queryKey: ["listPublishedProductsByVendor", vendorPrincipal?.toString()],
     queryFn: async () => {
-      if (!actor || !vendorPrincipal) throw new Error('Actor or vendorPrincipal not available');
+      if (!actor || !vendorPrincipal)
+        throw new Error("Actor or vendorPrincipal not available");
       return actor.listPublishedProductsByVendor(vendorPrincipal);
     },
     enabled: !!actor && !isFetching && !!vendorPrincipal,
@@ -123,9 +137,9 @@ export function useCallerVendorProfile() {
   const { actor, isFetching } = useActor();
 
   return useQuery<VendorProfile | null>({
-    queryKey: ['callerVendorProfile'],
+    queryKey: ["callerVendorProfile"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getCallerVendorProfile();
     },
     enabled: !!actor && !isFetching,
@@ -139,12 +153,15 @@ export function useUpsertCallerVendorProfile() {
   const { actor } = useActor();
 
   return useMutation({
-    mutationFn: async ({ companyName, logoUrl }: { companyName: string; logoUrl: string }) => {
-      if (!actor) throw new Error('Actor not initialized');
+    mutationFn: async ({
+      companyName,
+      logoUrl,
+    }: { companyName: string; logoUrl: string }) => {
+      if (!actor) throw new Error("Actor not initialized");
       return actor.upsertCallerVendorProfile(companyName, logoUrl);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['callerVendorProfile'] });
+      queryClient.invalidateQueries({ queryKey: ["callerVendorProfile"] });
     },
   });
 }
@@ -154,9 +171,9 @@ export function useCallerProducts() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Product[]>({
-    queryKey: ['callerProducts'],
+    queryKey: ["callerProducts"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getCallerProducts();
     },
     enabled: !!actor && !isFetching,
@@ -178,7 +195,7 @@ export function useCreateProduct() {
       category: string;
       isPublished: boolean;
     }) => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.createProduct(
         product.title,
         product.description,
@@ -186,12 +203,12 @@ export function useCreateProduct() {
         product.currency,
         product.imageUrl,
         product.category,
-        product.isPublished
+        product.isPublished,
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['callerProducts'] });
-      queryClient.invalidateQueries({ queryKey: ['publishedProducts'] });
+      queryClient.invalidateQueries({ queryKey: ["callerProducts"] });
+      queryClient.invalidateQueries({ queryKey: ["publishedProducts"] });
     },
   });
 }
@@ -212,7 +229,7 @@ export function useUpdateProduct() {
       category: string;
       isPublished: boolean;
     }) => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.updateProduct(
         product.productId,
         product.title,
@@ -221,13 +238,15 @@ export function useUpdateProduct() {
         product.currency,
         product.imageUrl,
         product.category,
-        product.isPublished
+        product.isPublished,
       );
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['callerProducts'] });
-      queryClient.invalidateQueries({ queryKey: ['publishedProducts'] });
-      queryClient.invalidateQueries({ queryKey: ['product', variables.productId.toString()] });
+      queryClient.invalidateQueries({ queryKey: ["callerProducts"] });
+      queryClient.invalidateQueries({ queryKey: ["publishedProducts"] });
+      queryClient.invalidateQueries({
+        queryKey: ["product", variables.productId.toString()],
+      });
     },
   });
 }
@@ -237,9 +256,9 @@ export function useAllVendorProfiles() {
   const { actor, isFetching } = useActor();
 
   return useQuery<VendorProfile[]>({
-    queryKey: ['allVendorProfiles'],
+    queryKey: ["allVendorProfiles"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getAllVendorProfiles();
     },
     enabled: !!actor && !isFetching,
@@ -253,13 +272,13 @@ export function useVerifyVendor() {
 
   return useMutation({
     mutationFn: async (vendorId: VendorId) => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.verifyVendor(vendorId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allVendorProfiles'] });
-      queryClient.invalidateQueries({ queryKey: ['verifiedVendors'] });
-      queryClient.invalidateQueries({ queryKey: ['listVerifiedVendors'] });
+      queryClient.invalidateQueries({ queryKey: ["allVendorProfiles"] });
+      queryClient.invalidateQueries({ queryKey: ["verifiedVendors"] });
+      queryClient.invalidateQueries({ queryKey: ["listVerifiedVendors"] });
     },
   });
 }
@@ -267,14 +286,18 @@ export function useVerifyVendor() {
 // Admin: Check if caller is admin
 export function useIsCallerAdmin() {
   const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  const callerPrincipal = identity?.getPrincipal();
 
   return useQuery<boolean>({
-    queryKey: ['isCallerAdmin'],
+    queryKey: ["isCallerAdmin", callerPrincipal?.toString()],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
-      return actor.isCallerAdmin();
+      if (!actor || !callerPrincipal)
+        throw new Error("Actor or principal not available");
+      return actor.isAdmin(callerPrincipal);
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !!callerPrincipal,
     retry: false,
   });
 }
@@ -284,9 +307,9 @@ export function useHasAdmin() {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['hasAdmin'],
+    queryKey: ["hasAdmin"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.hasAdmin();
     },
     enabled: !!actor && !isFetching,
@@ -299,9 +322,9 @@ export function useUpgradeSummary() {
   const { actor, isFetching } = useActor();
 
   return useQuery<UpgradeSummary>({
-    queryKey: ['upgradeSummary'],
+    queryKey: ["upgradeSummary"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getUpgradeSummary();
     },
     enabled: !!actor && !isFetching,
@@ -310,13 +333,13 @@ export function useUpgradeSummary() {
 }
 
 // Admin: Get all admins (requires authorization)
-export function useGetAdmins(enabled: boolean = true) {
+export function useGetAdmins(enabled = true) {
   const { actor, isFetching } = useActor();
 
   return useQuery<Principal[]>({
-    queryKey: ['admins'],
+    queryKey: ["admins"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getAdmins();
     },
     enabled: !!actor && !isFetching && enabled,
@@ -331,13 +354,13 @@ export function useAddAdmin() {
 
   return useMutation({
     mutationFn: async (adminPrincipal: Principal) => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.addAdmin(adminPrincipal);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admins'] });
-      queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
-      queryClient.invalidateQueries({ queryKey: ['hasAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ["admins"] });
+      queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
+      queryClient.invalidateQueries({ queryKey: ["hasAdmin"] });
     },
   });
 }
@@ -349,13 +372,13 @@ export function useRemoveAdmin() {
 
   return useMutation({
     mutationFn: async (adminPrincipal: Principal) => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.removeAdmin(adminPrincipal);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admins'] });
-      queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
-      queryClient.invalidateQueries({ queryKey: ['hasAdmin'] });
+      queryClient.invalidateQueries({ queryKey: ["admins"] });
+      queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
+      queryClient.invalidateQueries({ queryKey: ["hasAdmin"] });
     },
   });
 }
@@ -367,15 +390,15 @@ export function useBootstrapFirstAdmin() {
 
   return useMutation({
     mutationFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.bootstrapFirstAdmin();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admins'] });
-      queryClient.invalidateQueries({ queryKey: ['isCallerAdmin'] });
-      queryClient.invalidateQueries({ queryKey: ['hasAdmin'] });
-      queryClient.invalidateQueries({ queryKey: ['allVendorProfiles'] });
-      queryClient.invalidateQueries({ queryKey: ['upgradeSummary'] });
+      queryClient.invalidateQueries({ queryKey: ["admins"] });
+      queryClient.invalidateQueries({ queryKey: ["isCallerAdmin"] });
+      queryClient.invalidateQueries({ queryKey: ["hasAdmin"] });
+      queryClient.invalidateQueries({ queryKey: ["allVendorProfiles"] });
+      queryClient.invalidateQueries({ queryKey: ["upgradeSummary"] });
     },
   });
 }
@@ -385,9 +408,9 @@ export function useGetAppOwner() {
   const { actor, isFetching } = useActor();
 
   return useQuery<Principal | null>({
-    queryKey: ['appOwner'],
+    queryKey: ["appOwner"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.getAppOwner();
     },
     enabled: !!actor && !isFetching,
@@ -400,9 +423,9 @@ export function useIsCallerAppOwner() {
   const { actor, isFetching } = useActor();
 
   return useQuery<boolean>({
-    queryKey: ['isCallerAppOwner'],
+    queryKey: ["isCallerAppOwner"],
     queryFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.isCallerAppOwner();
     },
     enabled: !!actor && !isFetching,
@@ -417,12 +440,12 @@ export function useClaimAppOwner() {
 
   return useMutation({
     mutationFn: async () => {
-      if (!actor) throw new Error('Actor not initialized');
+      if (!actor) throw new Error("Actor not initialized");
       return actor.claimAppOwner();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appOwner'] });
-      queryClient.invalidateQueries({ queryKey: ['isCallerAppOwner'] });
+      queryClient.invalidateQueries({ queryKey: ["appOwner"] });
+      queryClient.invalidateQueries({ queryKey: ["isCallerAppOwner"] });
     },
   });
 }

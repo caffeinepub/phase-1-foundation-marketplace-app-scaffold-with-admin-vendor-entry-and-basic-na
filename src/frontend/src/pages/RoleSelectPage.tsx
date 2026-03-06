@@ -1,26 +1,36 @@
-import { useNavigate } from '@tanstack/react-router';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { useRoleMode } from '../hooks/useRoleMode';
-import { useInternetIdentity } from '../hooks/useInternetIdentity';
-import { useIsCallerAdmin, useIsCallerAppOwner } from '../hooks/useMarketplaceQueries';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useNavigate } from "@tanstack/react-router";
+import { AlertCircle, CheckCircle, Loader2, Shield, User } from "lucide-react";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useIsCallerAdmin,
+  useIsCallerAppOwner,
+} from "../hooks/useMarketplaceQueries";
+import { useRoleMode } from "../hooks/useRoleMode";
 
 export default function RoleSelectPage() {
   const { setRoleMode } = useRoleMode();
   const { identity } = useInternetIdentity();
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
-  const { data: isAppOwner, isLoading: isAppOwnerLoading } = useIsCallerAppOwner();
+  const { data: isAppOwner, isLoading: isAppOwnerLoading } =
+    useIsCallerAppOwner();
   const navigate = useNavigate();
 
   const isAuthorized = isAdmin || isAppOwner;
   const isAuthLoading = isAdminLoading || isAppOwnerLoading;
 
-  const handleRoleSelect = (role: 'admin' | 'vendor') => {
+  const handleRoleSelect = (role: "admin" | "vendor") => {
     setRoleMode(role);
-    navigate({ to: role === 'admin' ? '/admin' : '/vendor' });
+    navigate({ to: role === "admin" ? "/admin" : "/vendor" });
   };
 
   if (!identity) {
@@ -38,7 +48,10 @@ export default function RoleSelectPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className={`hover:border-primary transition-colors ${!isAuthLoading && !isAuthorized ? 'opacity-60' : 'cursor-pointer'}`} onClick={() => isAuthorized && handleRoleSelect('admin')}>
+          <Card
+            className={`hover:border-primary transition-colors ${!isAuthLoading && !isAuthorized ? "opacity-60" : "cursor-pointer"}`}
+            onClick={() => isAuthorized && handleRoleSelect("admin")}
+          >
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <Shield className="h-8 w-8 text-primary" />
@@ -54,7 +67,10 @@ export default function RoleSelectPage() {
                       Authorized
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="gap-1 text-muted-foreground">
+                    <Badge
+                      variant="outline"
+                      className="gap-1 text-muted-foreground"
+                    >
                       <AlertCircle className="h-3 w-3" />
                       Not Authorized
                     </Badge>
@@ -72,7 +88,11 @@ export default function RoleSelectPage() {
                   Checking Authorization...
                 </Button>
               ) : isAuthorized ? (
-                <Button className="w-full" size="lg" onClick={() => handleRoleSelect('admin')}>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={() => handleRoleSelect("admin")}
+                >
                   Continue as Admin
                 </Button>
               ) : (
@@ -93,14 +113,19 @@ export default function RoleSelectPage() {
                 <Alert className="mt-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    Your principal is not the app owner and is not in the admin allowlist. Contact an existing admin or claim app ownership to request access.
+                    Your principal is not the app owner and is not in the admin
+                    allowlist. Contact an existing admin or claim app ownership
+                    to request access.
                   </AlertDescription>
                 </Alert>
               )}
             </CardContent>
           </Card>
 
-          <Card className="hover:border-primary transition-colors cursor-pointer" onClick={() => handleRoleSelect('vendor')}>
+          <Card
+            className="hover:border-primary transition-colors cursor-pointer"
+            onClick={() => handleRoleSelect("vendor")}
+          >
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <User className="h-8 w-8 text-primary" />
@@ -111,7 +136,11 @@ export default function RoleSelectPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" size="lg" onClick={() => handleRoleSelect('vendor')}>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => handleRoleSelect("vendor")}
+              >
                 Continue as Vendor
               </Button>
               <div className="mt-4 text-sm text-muted-foreground space-y-1">

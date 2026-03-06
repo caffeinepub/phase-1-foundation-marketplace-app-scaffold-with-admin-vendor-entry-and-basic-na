@@ -1,19 +1,37 @@
-import { ReactNode } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, AlertCircle, ArrowLeft } from 'lucide-react';
-import { useIsCallerAdmin, useIsCallerAppOwner, useHasAdmin } from '../../hooks/useMarketplaceQueries';
-import { useNavigate } from '@tanstack/react-router';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "@tanstack/react-router";
+import { AlertCircle, ArrowLeft, Shield } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  useHasAdmin,
+  useIsCallerAdmin,
+  useIsCallerAppOwner,
+} from "../../hooks/useMarketplaceQueries";
 
 interface RequireAdminProps {
   children: ReactNode;
 }
 
 export default function RequireAdmin({ children }: RequireAdminProps) {
-  const { data: isAdmin, isLoading: isAdminLoading, error: adminError } = useIsCallerAdmin();
-  const { data: isAppOwner, isLoading: isAppOwnerLoading, error: appOwnerError } = useIsCallerAppOwner();
+  const {
+    data: isAdmin,
+    isLoading: isAdminLoading,
+    error: adminError,
+  } = useIsCallerAdmin();
+  const {
+    data: isAppOwner,
+    isLoading: isAppOwnerLoading,
+    error: appOwnerError,
+  } = useIsCallerAppOwner();
   const { data: hasAdmin, isLoading: hasAdminLoading } = useHasAdmin();
   const navigate = useNavigate();
 
@@ -22,7 +40,7 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
   const isAuthorized = isAdmin || isAppOwner;
 
   // Allow access if user is authorized OR if no admins exist yet (bootstrap scenario)
-  const canAccess = isAuthorized || (hasAdmin === false);
+  const canAccess = isAuthorized || hasAdmin === false;
 
   if (isLoading) {
     return (
@@ -56,7 +74,9 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
               </div>
               <div>
                 <CardTitle>Error Checking Authorization</CardTitle>
-                <CardDescription>Unable to verify your privileges</CardDescription>
+                <CardDescription>
+                  Unable to verify your privileges
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -64,10 +84,16 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {error instanceof Error ? error.message : 'An unexpected error occurred'}
+                {error instanceof Error
+                  ? error.message
+                  : "An unexpected error occurred"}
               </AlertDescription>
             </Alert>
-            <Button onClick={() => navigate({ to: '/' })} variant="outline" className="gap-2">
+            <Button
+              onClick={() => navigate({ to: "/" })}
+              variant="outline"
+              className="gap-2"
+            >
               <ArrowLeft className="h-4 w-4" />
               Return Home
             </Button>
@@ -88,7 +114,9 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
               </div>
               <div>
                 <CardTitle>Access Denied</CardTitle>
-                <CardDescription>Admin or App Owner privileges required</CardDescription>
+                <CardDescription>
+                  Admin or App Owner privileges required
+                </CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -96,22 +124,33 @@ export default function RequireAdmin({ children }: RequireAdminProps) {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                You are not authorized to access this area. Only the app owner or users in the admin allowlist can access admin features.
+                You are not authorized to access this area. Only the app owner
+                or users in the admin allowlist can access admin features.
               </AlertDescription>
             </Alert>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p className="font-medium">To gain admin access:</p>
               <ul className="list-disc list-inside ml-2 space-y-1">
-                <li>Ask an existing admin or the app owner to add your principal to the allowlist</li>
+                <li>
+                  Ask an existing admin or the app owner to add your principal
+                  to the allowlist
+                </li>
                 <li>Contact the platform administrator for assistance</li>
               </ul>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => navigate({ to: '/' })} variant="outline" className="gap-2">
+              <Button
+                onClick={() => navigate({ to: "/" })}
+                variant="outline"
+                className="gap-2"
+              >
                 <ArrowLeft className="h-4 w-4" />
                 Return Home
               </Button>
-              <Button onClick={() => navigate({ to: '/select-role' })} variant="default">
+              <Button
+                onClick={() => navigate({ to: "/select-role" })}
+                variant="default"
+              >
                 Select Different Role
               </Button>
             </div>

@@ -3,9 +3,7 @@ import Text "mo:core/Text";
 import Principal "mo:core/Principal";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
-import List "mo:core/List";
 import Nat "mo:core/Nat";
-import Debug "mo:core/Debug";
 import Time "mo:core/Time";
 import Auth "authorization/access-control";
 import Map "mo:core/Map";
@@ -45,12 +43,20 @@ actor {
   var appOwner : ?Principal = null;
   include MixinAuthorization(accessControlState);
 
-  var userProfiles = Map.empty<Principal, UserProfile>();
-  var vendors = Map.empty<VendorId, VendorProfile>();
-  var products = Map.empty<Nat, Product>();
-  var lastVendorId = 0;
-  var lastProductId = 0;
-  var adminAllowlist = Map.empty<Principal, Bool>();
+  stable var stableVendors : [(Nat, VendorProfile)] = [];
+  stable var stableProducts : [(Nat, Product)] = [];
+  stable var stableUserProfiles : [(Principal, UserProfile)] = [];
+  stable var stableAdminAllowlist : [(Principal, Bool)] = [];
+  stable var stableAppOwner : ?Principal = null;
+  stable var stableLastVendorId : Nat = 0;
+  stable var stableLastProductId : Nat = 0;
+
+  var userProfiles = Map.fromIter<Principal, UserProfile>(stableUserProfiles.vals());
+  var vendors = Map.fromIter<VendorId, VendorProfile>(stableVendors.vals());
+  var products = Map.fromIter<Nat, Product>(stableProducts.vals());
+  var lastVendorId = stableLastVendorId;
+  var lastProductId = stableLastProductId;
+  var adminAllowlist = Map.fromIter(stableAdminAllowlist.vals());
 
   public type Product = {
     id : ProductId;
@@ -96,6 +102,19 @@ actor {
     };
     let isAdminInList = adminAllowlist.containsKey(caller);
     isOwner or isAdminInList;
+  };
+
+  system func preupgrade() {
+    stableVendors := vendors.entries().toArray();
+    stableProducts := products.entries().toArray();
+    stableUserProfiles := userProfiles.entries().toArray();
+    stableAdminAllowlist := adminAllowlist.entries().toArray();
+    stableAppOwner := appOwner;
+    stableLastVendorId := lastVendorId;
+    stableLastProductId := lastProductId;
+  };
+
+  system func postupgrade() {
   };
 
   public query ({ caller }) func ping() : async Bool { true };
@@ -420,12 +439,6 @@ actor {
     ).toArray();
   };
 
-  private func syncAdminRole(principal : Principal, isAdmin : Bool) {
-    if (isAdmin) {
-      Auth.assignRole(accessControlState, principal, principal, #admin);
-    };
-  };
-
   public shared ({ caller }) func isAdminInternal(principal : Principal) : async Bool {
     adminAllowlist.containsKey(principal);
   };
@@ -458,7 +471,6 @@ actor {
     adminAllowlist.clear();
     for (admin in admins.values()) {
       adminAllowlist.add(admin, true);
-      syncAdminRole(admin, true);
     };
   };
 
@@ -468,7 +480,6 @@ actor {
     };
 
     adminAllowlist.add(adminPrincipal, true);
-    syncAdminRole(adminPrincipal, true);
   };
 
   public shared ({ caller }) func removeAdmin(adminPrincipal : Principal) : async () {
@@ -485,8 +496,6 @@ actor {
       case (null) { Runtime.trap("Principal not in admin list") };
       case (?_) {
         adminAllowlist.remove(adminPrincipal);
-        // Note: We cannot remove the role from AccessControl state,
-        // but the adminAllowlist check takes precedence in all admin operations
       };
     };
   };
@@ -497,7 +506,6 @@ actor {
     };
 
     adminAllowlist.add(caller, true);
-    syncAdminRole(caller, true);
   };
 
   public shared ({ caller }) func bootstrapAdmins(principals : [Principal]) : async () {
@@ -511,7 +519,6 @@ actor {
 
     for (principal in principals.values()) {
       adminAllowlist.add(principal, true);
-      syncAdminRole(principal, true);
     };
   };
 };

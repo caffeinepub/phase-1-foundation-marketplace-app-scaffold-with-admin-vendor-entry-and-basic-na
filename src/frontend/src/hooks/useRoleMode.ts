@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from "react";
 
-export type RoleMode = 'admin' | 'vendor' | null;
+export type RoleMode = "admin" | "vendor" | null;
 
-const ROLE_MODE_KEY = 'marketplace_role_mode';
+const ROLE_MODE_KEY = "marketplace_role_mode";
 
 export function useRoleMode() {
   const [roleMode, setRoleModeState] = useState<RoleMode>(() => {
     const stored = localStorage.getItem(ROLE_MODE_KEY);
-    return (stored === 'admin' || stored === 'vendor') ? stored : null;
+    return stored === "admin" || stored === "vendor" ? stored : null;
   });
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function useRoleMode() {
     roleMode,
     setRoleMode,
     clearRoleMode,
-    isAdmin: roleMode === 'admin',
-    isVendor: roleMode === 'vendor',
+    isAdmin: roleMode === "admin",
+    isVendor: roleMode === "vendor",
   };
 }

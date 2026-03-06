@@ -1,7 +1,7 @@
-import { type ReactNode } from 'react';
-import { Link, useMatchRoute } from '@tanstack/react-router';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Store, Package } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link, useMatchRoute } from "@tanstack/react-router";
+import { Package, Store } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface VendorLayoutPageProps {
   children?: ReactNode;
@@ -9,10 +9,14 @@ interface VendorLayoutPageProps {
 
 export default function VendorLayoutPage({ children }: VendorLayoutPageProps) {
   const matchRoute = useMatchRoute();
-  const isProfileRoute = matchRoute({ to: '/vendor/profile' });
-  const isProductsRoute = matchRoute({ to: '/vendor/products' });
+  const isProfileRoute = matchRoute({ to: "/vendor/profile" });
+  const isProductsRoute = matchRoute({ to: "/vendor/products" });
 
-  const currentTab = isProfileRoute ? 'profile' : isProductsRoute ? 'products' : 'profile';
+  const currentTab = isProfileRoute
+    ? "profile"
+    : isProductsRoute
+      ? "products"
+      : "profile";
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -23,7 +27,9 @@ export default function VendorLayoutPage({ children }: VendorLayoutPageProps) {
           </div>
           <div>
             <h1 className="text-4xl font-bold">Vendor Dashboard</h1>
-            <p className="text-muted-foreground">Manage your store and products</p>
+            <p className="text-muted-foreground">
+              Manage your store and products
+            </p>
           </div>
         </div>
 

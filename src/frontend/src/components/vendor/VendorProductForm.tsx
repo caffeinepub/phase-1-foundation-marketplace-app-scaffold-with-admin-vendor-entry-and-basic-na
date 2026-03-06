@@ -1,15 +1,24 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { useCreateProduct, useUpdateProduct } from '../../hooks/useMarketplaceQueries';
-import type { Product } from '../../backend';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import type { Product } from "../../backend";
+import {
+  useCreateProduct,
+  useUpdateProduct,
+} from "../../hooks/useMarketplaceQueries";
 
 interface VendorProductFormProps {
   product?: Product;
@@ -27,21 +36,24 @@ interface ProductFormData {
 }
 
 const CATEGORIES = [
-  'Electronics',
-  'Clothing',
-  'Home & Garden',
-  'Sports & Outdoors',
-  'Books',
-  'Toys & Games',
-  'Health & Beauty',
-  'Food & Beverage',
-  'Art & Crafts',
-  'Other',
+  "Electronics",
+  "Clothing",
+  "Home & Garden",
+  "Sports & Outdoors",
+  "Books",
+  "Toys & Games",
+  "Health & Beauty",
+  "Food & Beverage",
+  "Art & Crafts",
+  "Other",
 ];
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD"];
 
-export default function VendorProductForm({ product, onSuccess }: VendorProductFormProps) {
+export default function VendorProductForm({
+  product,
+  onSuccess,
+}: VendorProductFormProps) {
   const isEditing = !!product;
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
@@ -55,23 +67,25 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
     formState: { errors },
   } = useForm<ProductFormData>({
     defaultValues: {
-      title: product?.title || '',
-      description: product?.description || '',
-      price: product ? (Number(product.price) / 100).toFixed(2) : '',
-      currency: product?.currency || 'USD',
-      imageUrl: product?.imageUrl || '',
-      category: product?.category || '',
+      title: product?.title || "",
+      description: product?.description || "",
+      price: product ? (Number(product.price) / 100).toFixed(2) : "",
+      currency: product?.currency || "USD",
+      imageUrl: product?.imageUrl || "",
+      category: product?.category || "",
       isPublished: product?.isPublished || false,
     },
   });
 
-  const isPublished = watch('isPublished');
+  const isPublished = watch("isPublished");
 
   const onSubmit = async (data: ProductFormData) => {
     setBackendError(null);
-    
+
     try {
-      const priceInCents = BigInt(Math.round(parseFloat(data.price) * 100));
+      const priceInCents = BigInt(
+        Math.round(Number.parseFloat(data.price) * 100),
+      );
 
       if (isEditing && product) {
         await updateProduct.mutateAsync({
@@ -98,8 +112,10 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
 
       onSuccess?.();
     } catch (error: any) {
-      console.error('Product operation error:', error);
-      setBackendError(error.message || 'An error occurred while saving the product');
+      console.error("Product operation error:", error);
+      setBackendError(
+        error.message || "An error occurred while saving the product",
+      );
     }
   };
 
@@ -118,7 +134,7 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
         <Label htmlFor="title">Product Title *</Label>
         <Input
           id="title"
-          {...register('title', { required: 'Title is required' })}
+          {...register("title", { required: "Title is required" })}
           placeholder="Enter product title"
           disabled={isPending}
         />
@@ -131,13 +147,15 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
         <Label htmlFor="description">Description *</Label>
         <Textarea
           id="description"
-          {...register('description', { required: 'Description is required' })}
+          {...register("description", { required: "Description is required" })}
           placeholder="Describe your product"
           rows={4}
           disabled={isPending}
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.description.message}
+          </p>
         )}
       </div>
 
@@ -149,9 +167,9 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
             type="number"
             step="0.01"
             min="0"
-            {...register('price', {
-              required: 'Price is required',
-              min: { value: 0, message: 'Price must be positive' },
+            {...register("price", {
+              required: "Price is required",
+              min: { value: 0, message: "Price must be positive" },
             })}
             placeholder="0.00"
             disabled={isPending}
@@ -164,15 +182,15 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
         <div className="space-y-2">
           <Label htmlFor="currency">Currency *</Label>
           <Select
-            value={watch('currency')}
-            onValueChange={(value) => setValue('currency', value)}
+            value={watch("currency")}
+            onValueChange={(value) => setValue("currency", value)}
             disabled={isPending}
           >
             <SelectTrigger id="currency">
               <SelectValue placeholder="Select currency" />
             </SelectTrigger>
             <SelectContent>
-              {CURRENCIES.map(currency => (
+              {CURRENCIES.map((currency) => (
                 <SelectItem key={currency} value={currency}>
                   {currency}
                 </SelectItem>
@@ -185,15 +203,15 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
       <div className="space-y-2">
         <Label htmlFor="category">Category *</Label>
         <Select
-          value={watch('category')}
-          onValueChange={(value) => setValue('category', value)}
+          value={watch("category")}
+          onValueChange={(value) => setValue("category", value)}
           disabled={isPending}
         >
           <SelectTrigger id="category">
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map(category => (
+            {CATEGORIES.map((category) => (
               <SelectItem key={category} value={category}>
                 {category}
               </SelectItem>
@@ -209,7 +227,7 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
         <Label htmlFor="imageUrl">Image URL</Label>
         <Input
           id="imageUrl"
-          {...register('imageUrl')}
+          {...register("imageUrl")}
           placeholder="https://example.com/image.jpg"
           disabled={isPending}
         />
@@ -228,7 +246,7 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
         <Switch
           id="isPublished"
           checked={isPublished}
-          onCheckedChange={(checked) => setValue('isPublished', checked)}
+          onCheckedChange={(checked) => setValue("isPublished", checked)}
           disabled={isPending}
         />
       </div>
@@ -236,7 +254,7 @@ export default function VendorProductForm({ product, onSuccess }: VendorProductF
       <div className="flex justify-end gap-3">
         <Button type="submit" disabled={isPending}>
           {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-          {isEditing ? 'Update Product' : 'Create Product'}
+          {isEditing ? "Update Product" : "Create Product"}
         </Button>
       </div>
     </form>

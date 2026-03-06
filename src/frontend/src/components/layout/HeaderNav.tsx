@@ -1,23 +1,32 @@
-import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
-import { Store, Package, Shield, User, Building2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import AuthControls from '../auth/AuthControls';
-import { useRoleMode } from '../../hooks/useRoleMode';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useIsCallerAdmin, useIsCallerAppOwner } from '../../hooks/useMarketplaceQueries';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { Building2, Package, Shield, Store, User } from "lucide-react";
+import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import {
+  useIsCallerAdmin,
+  useIsCallerAppOwner,
+} from "../../hooks/useMarketplaceQueries";
+import { useRoleMode } from "../../hooks/useRoleMode";
+import AuthControls from "../auth/AuthControls";
 
 export default function HeaderNav() {
   const { roleMode } = useRoleMode();
   const { identity } = useInternetIdentity();
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
-  const { data: isAppOwner, isLoading: isAppOwnerLoading } = useIsCallerAppOwner();
-  const navigate = useNavigate();
+  const { data: isAppOwner, isLoading: isAppOwnerLoading } =
+    useIsCallerAppOwner();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
-  const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/');
+  const isActive = (path: string) =>
+    currentPath === path || currentPath.startsWith(`${path}/`);
   const isAuthorized = isAdmin || isAppOwner;
   const isAuthLoading = isAdminLoading || isAppOwnerLoading;
 
@@ -26,22 +35,27 @@ export default function HeaderNav() {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2 text-xl font-bold text-foreground hover:text-foreground/80 transition-colors">
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-xl font-bold text-foreground hover:text-foreground/80 transition-colors"
+            >
               <Store className="h-6 w-6" />
               <span>Marketplace</span>
             </Link>
-            
+
             <nav className="hidden md:flex items-center gap-1">
               <Button
-                variant={isActive('/') && currentPath === '/' ? 'secondary' : 'ghost'}
+                variant={
+                  isActive("/") && currentPath === "/" ? "secondary" : "ghost"
+                }
                 size="sm"
                 asChild
               >
                 <Link to="/">Home</Link>
               </Button>
-              
+
               <Button
-                variant={isActive('/products') ? 'secondary' : 'ghost'}
+                variant={isActive("/products") ? "secondary" : "ghost"}
                 size="sm"
                 asChild
               >
@@ -52,7 +66,7 @@ export default function HeaderNav() {
               </Button>
 
               <Button
-                variant={isActive('/vendors') ? 'secondary' : 'ghost'}
+                variant={isActive("/vendors") ? "secondary" : "ghost"}
                 size="sm"
                 asChild
               >
@@ -71,7 +85,7 @@ export default function HeaderNav() {
                     </Button>
                   ) : isAuthorized ? (
                     <Button
-                      variant={isActive('/admin') ? 'secondary' : 'ghost'}
+                      variant={isActive("/admin") ? "secondary" : "ghost"}
                       size="sm"
                       asChild
                     >
@@ -84,20 +98,27 @@ export default function HeaderNav() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="ghost" size="sm" disabled className="opacity-50">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled
+                            className="opacity-50"
+                          >
                             <Shield className="h-4 w-4 mr-2" />
                             Admin
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p className="text-xs">Admin or App Owner access required</p>
+                          <p className="text-xs">
+                            Admin or App Owner access required
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   )}
 
                   <Button
-                    variant={isActive('/vendor') ? 'secondary' : 'ghost'}
+                    variant={isActive("/vendor") ? "secondary" : "ghost"}
                     size="sm"
                     asChild
                   >
@@ -114,7 +135,7 @@ export default function HeaderNav() {
           <div className="flex items-center gap-4">
             {roleMode && (
               <Badge variant="outline" className="hidden sm:flex">
-                {roleMode === 'admin' ? (
+                {roleMode === "admin" ? (
                   <>
                     <Shield className="h-3 w-3 mr-1" />
                     Admin Mode

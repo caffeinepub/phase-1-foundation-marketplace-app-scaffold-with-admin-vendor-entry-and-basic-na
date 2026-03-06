@@ -1,19 +1,25 @@
-import { createRouter, createRoute, createRootRoute, RouterProvider, Outlet } from '@tanstack/react-router';
-import { ThemeProvider } from 'next-themes';
-import LandingPage from './pages/LandingPage';
-import PublicProductsPage from './pages/PublicProductsPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import VendorsDirectoryPage from './pages/VendorsDirectoryPage';
-import VendorStorefrontPage from './pages/VendorStorefrontPage';
-import AdminPlaceholderPage from './pages/AdminPlaceholderPage';
-import VendorLayoutPage from './pages/VendorLayoutPage';
-import VendorProfilePage from './pages/VendorProfilePage';
-import VendorProductsPage from './pages/VendorProductsPage';
-import RoleSelectPage from './pages/RoleSelectPage';
-import AppLayout from './components/layout/AppLayout';
-import RequireAuth from './components/auth/RequireAuth';
-import RequireRoleMode from './components/auth/RequireRoleMode';
-import RequireAdmin from './components/auth/RequireAdmin';
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+} from "@tanstack/react-router";
+import { ThemeProvider } from "next-themes";
+import RequireAdmin from "./components/auth/RequireAdmin";
+import RequireAuth from "./components/auth/RequireAuth";
+import RequireRoleMode from "./components/auth/RequireRoleMode";
+import AppLayout from "./components/layout/AppLayout";
+import AdminPlaceholderPage from "./pages/AdminPlaceholderPage";
+import LandingPage from "./pages/LandingPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
+import PublicProductsPage from "./pages/PublicProductsPage";
+import RoleSelectPage from "./pages/RoleSelectPage";
+import VendorLayoutPage from "./pages/VendorLayoutPage";
+import VendorProductsPage from "./pages/VendorProductsPage";
+import VendorProfilePage from "./pages/VendorProfilePage";
+import VendorStorefrontPage from "./pages/VendorStorefrontPage";
+import VendorsDirectoryPage from "./pages/VendorsDirectoryPage";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -25,37 +31,37 @@ const rootRoute = createRootRoute({
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: "/",
   component: LandingPage,
 });
 
 const publicProductsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/products',
+  path: "/products",
   component: PublicProductsPage,
 });
 
 const productDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/products/$productId',
+  path: "/products/$productId",
   component: ProductDetailPage,
 });
 
 const vendorsDirectoryRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/vendors',
+  path: "/vendors",
   component: VendorsDirectoryPage,
 });
 
 const vendorStorefrontRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/vendors/$vendorId',
+  path: "/vendors/$vendorId",
   component: VendorStorefrontPage,
 });
 
 const roleSelectRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/select-role',
+  path: "/select-role",
   component: () => (
     <RequireAuth>
       <RoleSelectPage />
@@ -65,7 +71,7 @@ const roleSelectRoute = createRoute({
 
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/admin',
+  path: "/admin",
   component: () => (
     <RequireAuth>
       <RequireAdmin>
@@ -77,7 +83,7 @@ const adminRoute = createRoute({
 
 const vendorRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/vendor',
+  path: "/vendor",
   component: () => (
     <RequireAuth>
       <RequireRoleMode requiredMode="vendor">
@@ -89,13 +95,13 @@ const vendorRoute = createRoute({
 
 const vendorIndexRoute = createRoute({
   getParentRoute: () => vendorRoute,
-  path: '/',
+  path: "/",
   component: VendorLayoutPage,
 });
 
 const vendorProfileRoute = createRoute({
   getParentRoute: () => vendorRoute,
-  path: '/profile',
+  path: "/profile",
   component: () => (
     <VendorLayoutPage>
       <VendorProfilePage />
@@ -105,7 +111,7 @@ const vendorProfileRoute = createRoute({
 
 const vendorProductsRoute = createRoute({
   getParentRoute: () => vendorRoute,
-  path: '/products',
+  path: "/products",
   component: () => (
     <VendorLayoutPage>
       <VendorProductsPage />
@@ -121,15 +127,19 @@ const routeTree = rootRoute.addChildren([
   vendorStorefrontRoute,
   roleSelectRoute,
   adminRoute,
-  vendorRoute.addChildren([vendorIndexRoute, vendorProfileRoute, vendorProductsRoute]),
+  vendorRoute.addChildren([
+    vendorIndexRoute,
+    vendorProfileRoute,
+    vendorProductsRoute,
+  ]),
 ]);
 
-const router = createRouter({ 
+const router = createRouter({
   routeTree,
-  defaultPreload: 'intent',
+  defaultPreload: "intent",
 });
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }

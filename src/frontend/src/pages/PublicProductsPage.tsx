@@ -1,53 +1,72 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Package, Search, AlertCircle } from 'lucide-react';
-import { usePublishedProducts } from '../hooks/useMarketplaceQueries';
-import { PRODUCT_PLACEHOLDER } from '../utils/placeholders';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "@tanstack/react-router";
+import { AlertCircle, Package, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { usePublishedProducts } from "../hooks/useMarketplaceQueries";
+import { PRODUCT_PLACEHOLDER } from "../utils/placeholders";
 
 export default function PublicProductsPage() {
   const navigate = useNavigate();
   const { data: products, isLoading, error } = usePublishedProducts();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   // Extract unique categories
   const categories = useMemo(() => {
     if (!products) return [];
-    const uniqueCategories = new Set(products.map(p => p.category).filter(Boolean));
+    const uniqueCategories = new Set(
+      products.map((p) => p.category).filter(Boolean),
+    );
     return Array.from(uniqueCategories).sort();
   }, [products]);
 
   // Filter products based on search and category
   const filteredProducts = useMemo(() => {
     if (!products) return [];
-    
-    return products.filter(product => {
-      const matchesSearch = searchQuery === '' || 
+
+    return products.filter((product) => {
+      const matchesSearch =
+        searchQuery === "" ||
         product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-      
+
+      const matchesCategory =
+        selectedCategory === "all" || product.category === selectedCategory;
+
       return matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, selectedCategory]);
 
   const formatPrice = (price: bigint, currency: string) => {
     const priceNum = Number(price) / 100; // Assuming price is in cents
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
     }).format(priceNum);
   };
 
   const handleProductClick = (productId: bigint) => {
-    navigate({ to: '/products/$productId', params: { productId: productId.toString() } });
+    navigate({
+      to: "/products/$productId",
+      params: { productId: productId.toString() },
+    });
   };
 
   return (
@@ -80,7 +99,7 @@ export default function PublicProductsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map(category => (
+              {categories.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
                 </SelectItem>
@@ -102,7 +121,7 @@ export default function PublicProductsPage() {
         {/* Loading State */}
         {isLoading && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i => (
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <Card key={i}>
                 <CardHeader>
                   <Skeleton className="h-48 w-full rounded-md" />
@@ -124,9 +143,9 @@ export default function PublicProductsPage() {
               <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-lg font-medium mb-2">No products found</p>
               <p className="text-muted-foreground">
-                {searchQuery || selectedCategory !== 'all'
-                  ? 'Try adjusting your search or filters'
-                  : 'Products will appear here once vendors add them to the marketplace'}
+                {searchQuery || selectedCategory !== "all"
+                  ? "Try adjusting your search or filters"
+                  : "Products will appear here once vendors add them to the marketplace"}
               </p>
             </CardContent>
           </Card>
@@ -135,11 +154,12 @@ export default function PublicProductsPage() {
         {/* Products Grid */}
         {!isLoading && !error && filteredProducts.length > 0 && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map(product => (
-              <div
+            {filteredProducts.map((product) => (
+              <button
                 key={product.id.toString()}
+                type="button"
                 onClick={() => handleProductClick(product.id)}
-                className="group cursor-pointer"
+                className="group cursor-pointer text-left w-full"
               >
                 <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50">
                   <CardHeader className="space-y-4">
@@ -172,7 +192,7 @@ export default function PublicProductsPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </button>
             ))}
           </div>
         )}

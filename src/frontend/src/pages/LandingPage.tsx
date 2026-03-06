@@ -1,7 +1,13 @@
-import { Link } from '@tanstack/react-router';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Store, Package, Shield, User, ArrowRight } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight, Package, Shield, Store, User } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -14,7 +20,8 @@ export default function LandingPage() {
           Welcome to Marketplace Foundation
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Phase 1: Building the foundation for a multi-vendor marketplace on the Internet Computer
+          Phase 1: Building the foundation for a multi-vendor marketplace on the
+          Internet Computer
         </p>
         <div className="flex gap-4 justify-center pt-4">
           <Button size="lg" asChild>
@@ -33,7 +40,9 @@ export default function LandingPage() {
       </section>
 
       <section className="py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">Phase 1 Features</h2>
+        <h2 className="text-3xl font-bold text-center mb-12">
+          Phase 1 Features
+        </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader>
@@ -96,7 +105,9 @@ export default function LandingPage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <h3 className="font-semibold mb-2">Phase 2: Data & Onboarding</h3>
+                <h3 className="font-semibold mb-2">
+                  Phase 2: Data & Onboarding
+                </h3>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Vendor registration and profiles</li>
                   <li>• Product creation and management</li>
@@ -104,7 +115,9 @@ export default function LandingPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="font-semibold mb-2">Phase 3+: Advanced Features</h3>
+                <h3 className="font-semibold mb-2">
+                  Phase 3+: Advanced Features
+                </h3>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Search and filtering</li>
                   <li>• Analytics dashboards</li>

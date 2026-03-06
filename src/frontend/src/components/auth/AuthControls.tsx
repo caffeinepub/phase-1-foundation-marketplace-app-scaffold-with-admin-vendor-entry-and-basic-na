@@ -1,8 +1,8 @@
-import { Button } from '@/components/ui/button';
-import { LogIn, LogOut } from 'lucide-react';
-import { useInternetIdentity } from '../../hooks/useInternetIdentity';
-import { useRoleMode } from '../../hooks/useRoleMode';
-import { useNavigate } from '@tanstack/react-router';
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "@tanstack/react-router";
+import { LogIn, LogOut } from "lucide-react";
+import { useInternetIdentity } from "../../hooks/useInternetIdentity";
+import { useRoleMode } from "../../hooks/useRoleMode";
 
 export default function AuthControls() {
   const { identity, login, clear, isLoggingIn } = useInternetIdentity();
@@ -16,7 +16,7 @@ export default function AuthControls() {
   const handleLogout = () => {
     clearRoleMode();
     clear();
-    navigate({ to: '/' });
+    navigate({ to: "/" });
   };
 
   if (identity) {
@@ -28,11 +28,7 @@ export default function AuthControls() {
         <span className="hidden sm:inline text-sm text-muted-foreground">
           {shortPrincipal}
         </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleLogout}
-        >
+        <Button variant="outline" size="sm" onClick={handleLogout}>
           <LogOut className="h-4 w-4 mr-2" />
           Sign Out
         </Button>
@@ -48,7 +44,7 @@ export default function AuthControls() {
       disabled={isLoggingIn}
     >
       <LogIn className="h-4 w-4 mr-2" />
-      {isLoggingIn ? 'Signing In...' : 'Sign In'}
+      {isLoggingIn ? "Signing In..." : "Sign In"}
     </Button>
   );
 }

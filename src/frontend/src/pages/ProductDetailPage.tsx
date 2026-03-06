@@ -1,29 +1,41 @@
-import { useParams, useNavigate } from '@tanstack/react-router';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, AlertCircle, ShieldCheck } from 'lucide-react';
-import { useProductById, useVendorProfileByUser } from '../hooks/useMarketplaceQueries';
-import { PRODUCT_PLACEHOLDER } from '../utils/placeholders';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { AlertCircle, ArrowLeft, ShieldCheck } from "lucide-react";
+import {
+  useProductById,
+  useVendorProfileByUser,
+} from "../hooks/useMarketplaceQueries";
+import { PRODUCT_PLACEHOLDER } from "../utils/placeholders";
 
 export default function ProductDetailPage() {
   const { productId } = useParams({ strict: false });
   const navigate = useNavigate();
-  
+
   const productIdBigInt = productId ? BigInt(productId) : undefined;
-  const { data: product, isLoading: productLoading, error: productError } = useProductById(productIdBigInt);
-  
-  const { data: vendorProfile, isLoading: vendorLoading } = useVendorProfileByUser(
-    product?.ownerPrincipal
-  );
+  const {
+    data: product,
+    isLoading: productLoading,
+    error: productError,
+  } = useProductById(productIdBigInt);
+
+  const { data: vendorProfile, isLoading: vendorLoading } =
+    useVendorProfileByUser(product?.ownerPrincipal);
 
   const formatPrice = (price: bigint, currency: string) => {
     const priceNum = Number(price) / 100;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
     }).format(priceNum);
   };
 
@@ -51,14 +63,16 @@ export default function ProductDetailPage() {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Button variant="ghost" onClick={() => navigate({ to: '/products' })}>
+          <Button variant="ghost" onClick={() => navigate({ to: "/products" })}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Products
           </Button>
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {productError ? 'Failed to load product details.' : 'Product not found.'}
+              {productError
+                ? "Failed to load product details."
+                : "Product not found."}
             </AlertDescription>
           </Alert>
         </div>
@@ -69,7 +83,7 @@ export default function ProductDetailPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto space-y-6">
-        <Button variant="ghost" onClick={() => navigate({ to: '/products' })}>
+        <Button variant="ghost" onClick={() => navigate({ to: "/products" })}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Products
         </Button>
@@ -144,11 +158,17 @@ export default function ProductDetailPage() {
 
             <div className="border-t pt-6 space-y-2">
               <p className="text-sm text-muted-foreground">
-                Listed on {new Date(Number(product.createdAt) / 1000000).toLocaleDateString()}
+                Listed on{" "}
+                {new Date(
+                  Number(product.createdAt) / 1000000,
+                ).toLocaleDateString()}
               </p>
               {product.updatedAt !== product.createdAt && (
                 <p className="text-sm text-muted-foreground">
-                  Last updated {new Date(Number(product.updatedAt) / 1000000).toLocaleDateString()}
+                  Last updated{" "}
+                  {new Date(
+                    Number(product.updatedAt) / 1000000,
+                  ).toLocaleDateString()}
                 </p>
               )}
             </div>

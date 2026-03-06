@@ -1,14 +1,27 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Package, Plus, Edit, AlertCircle } from 'lucide-react';
-import { useCallerProducts } from '../hooks/useMarketplaceQueries';
-import VendorProductForm from '../components/vendor/VendorProductForm';
-import type { Product } from '../backend';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle, Edit, Package, Plus } from "lucide-react";
+import { useState } from "react";
+import type { Product } from "../backend";
+import VendorProductForm from "../components/vendor/VendorProductForm";
+import { useCallerProducts } from "../hooks/useMarketplaceQueries";
 
 export default function VendorProductsPage() {
   const { data: products, isLoading, error } = useCallerProducts();
@@ -17,9 +30,9 @@ export default function VendorProductsPage() {
 
   const formatPrice = (price: bigint, currency: string) => {
     const priceNum = Number(price) / 100;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency || "USD",
     }).format(priceNum);
   };
 
@@ -28,7 +41,7 @@ export default function VendorProductsPage() {
       <div className="space-y-6">
         <Skeleton className="h-10 w-full" />
         <div className="grid gap-4">
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3].map((i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-6 w-1/3" />
@@ -57,9 +70,7 @@ export default function VendorProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Your Products</h2>
-          <p className="text-muted-foreground">
-            Manage your product listings
-          </p>
+          <p className="text-muted-foreground">Manage your product listings</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -75,9 +86,7 @@ export default function VendorProductsPage() {
                 Add a new product to your store
               </DialogDescription>
             </DialogHeader>
-            <VendorProductForm
-              onSuccess={() => setIsCreateDialogOpen(false)}
-            />
+            <VendorProductForm onSuccess={() => setIsCreateDialogOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
@@ -98,15 +107,17 @@ export default function VendorProductsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {products?.map(product => (
+          {products?.map((product) => (
             <Card key={product.id.toString()}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
                       <CardTitle>{product.title}</CardTitle>
-                      <Badge variant={product.isPublished ? 'default' : 'secondary'}>
-                        {product.isPublished ? 'Published' : 'Draft'}
+                      <Badge
+                        variant={product.isPublished ? "default" : "secondary"}
+                      >
+                        {product.isPublished ? "Published" : "Draft"}
                       </Badge>
                       {product.category && (
                         <Badge variant="outline">{product.category}</Badge>
@@ -117,9 +128,12 @@ export default function VendorProductsPage() {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Dialog open={editingProduct?.id === product.id} onOpenChange={(open) => {
-                      if (!open) setEditingProduct(null);
-                    }}>
+                    <Dialog
+                      open={editingProduct?.id === product.id}
+                      onOpenChange={(open) => {
+                        if (!open) setEditingProduct(null);
+                      }}
+                    >
                       <DialogTrigger asChild>
                         <Button
                           variant="outline"
@@ -163,7 +177,10 @@ export default function VendorProductsPage() {
                         {formatPrice(product.price, product.currency)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Updated {new Date(Number(product.updatedAt) / 1000000).toLocaleDateString()}
+                        Updated{" "}
+                        {new Date(
+                          Number(product.updatedAt) / 1000000,
+                        ).toLocaleDateString()}
                       </p>
                     </div>
                   </div>

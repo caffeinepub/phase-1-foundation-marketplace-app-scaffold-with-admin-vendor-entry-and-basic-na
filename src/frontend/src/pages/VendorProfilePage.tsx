@@ -1,19 +1,32 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Store, CheckCircle, AlertCircle } from 'lucide-react';
-import { useCallerVendorProfile, useUpsertCallerVendorProfile } from '../hooks/useMarketplaceQueries';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle, CheckCircle, Store } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  useCallerVendorProfile,
+  useUpsertCallerVendorProfile,
+} from "../hooks/useMarketplaceQueries";
 
 export default function VendorProfilePage() {
-  const { data: vendorProfile, isLoading, isFetched } = useCallerVendorProfile();
+  const {
+    data: vendorProfile,
+    isLoading,
+    isFetched,
+  } = useCallerVendorProfile();
   const upsertMutation = useUpsertCallerVendorProfile();
 
-  const [companyName, setCompanyName] = useState('');
-  const [logoUrl, setLogoUrl] = useState('');
+  const [companyName, setCompanyName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
 
   // Update form state when vendor profile is loaded or changes
   useEffect(() => {
@@ -22,14 +35,14 @@ export default function VendorProfilePage() {
       setLogoUrl(vendorProfile.logoUrl);
     } else if (isFetched && !vendorProfile) {
       // First-time vendor with no profile - initialize with empty values
-      setCompanyName('');
-      setLogoUrl('');
+      setCompanyName("");
+      setLogoUrl("");
     }
   }, [vendorProfile, isFetched]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!companyName.trim()) {
       return;
     }
@@ -40,7 +53,7 @@ export default function VendorProfilePage() {
         logoUrl: logoUrl.trim(),
       });
     } catch (error) {
-      console.error('Failed to save vendor profile:', error);
+      console.error("Failed to save vendor profile:", error);
     }
   };
 
@@ -89,9 +102,9 @@ export default function VendorProfilePage() {
             <CardTitle>Vendor Profile</CardTitle>
           </div>
           <CardDescription>
-            {vendorProfile 
-              ? 'Manage your store information and branding'
-              : 'Create your vendor profile to start selling'}
+            {vendorProfile
+              ? "Manage your store information and branding"
+              : "Create your vendor profile to start selling"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -132,7 +145,7 @@ export default function VendorProfilePage() {
                     alt="Logo preview"
                     className="h-16 w-16 rounded-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.style.display = "none";
                     }}
                   />
                   <p className="text-sm text-muted-foreground">
@@ -146,7 +159,7 @@ export default function VendorProfilePage() {
               type="submit"
               disabled={upsertMutation.isPending || !companyName.trim()}
             >
-              {upsertMutation.isPending ? 'Saving...' : 'Save Profile'}
+              {upsertMutation.isPending ? "Saving..." : "Save Profile"}
             </Button>
           </form>
         </CardContent>
