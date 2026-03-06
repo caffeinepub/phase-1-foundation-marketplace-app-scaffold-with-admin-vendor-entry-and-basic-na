@@ -1,48 +1,25 @@
 # Multi-Vendor Marketplace
 
 ## Current State
-- Organizations are stored only in browser localStorage via `useOrganizations.ts` hooks
-- Organization data (name, description, logoUrl, vendorIds, createdAt) is not persisted on the backend canister
-- All other marketplace data (vendors, products, users, orders, admins, appOwner) uses stable Motoko storage with preupgrade/postupgrade hooks
-- The Admin Dashboard manages organizations locally (create, delete, assign/remove vendors)
-- Public OrganizationsPage and OrganizationDetailPage read from localStorage
-- VendorCard in OrganizationDetailPage fetches vendor profiles via backend by vendorId
+The landing page still shows "Phase 1: Building the foundation" and "Phase 1 Features" with placeholder copy and a "What's Coming Next?" section referencing Phase 2 and Phase 3 as future work. The app is now fully built through Phase 7 with: Internet Identity login, vendor onboarding and verification, product listings, cart and orders, admin dashboard with user/vendor/org/order management, organizations directory, upgrade diagnostics, and stable on-chain storage.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `Organization` type in Motoko: `{ id: Nat; name: Text; description: Text; logoUrl: Text; adminPrincipal: Principal; vendorIds: [Nat]; createdAt: Int }`
-- Stable storage for organizations: `stableOrganizations : [(Nat, Organization)]` and `stableLastOrgId : Nat`
-- In-memory `organizations` Map and `lastOrgId` counter, populated in preupgrade/postupgrade
-- Backend query: `listOrganizations() : async [Organization]` — public, returns all
-- Backend query: `getOrganization(orgId: Nat) : async ?Organization` — public
-- Backend update: `createOrganization(name, description, logoUrl) : async Nat` — admin/appOwner only
-- Backend update: `deleteOrganization(orgId: Nat) : async ()` — admin/appOwner only
-- Backend update: `assignVendorToOrganization(orgId: Nat, vendorId: Nat) : async ()` — admin/appOwner only; enforces exclusive membership (removes vendor from any prior org first)
-- Backend update: `removeVendorFromOrganization(orgId: Nat, vendorId: Nat) : async ()` — admin/appOwner only
-- Backend query: `getVendorOrganization(vendorId: Nat) : async ?Organization` — public, returns the org a vendor belongs to (if any)
-- `organizationCount` added to `UpgradeSummary`
+- Hero section with accurate description of the live marketplace
+- Feature highlights grid reflecting real, working features: Browse Products, Vendor Storefronts, Cart & Orders, Admin Dashboard, Organizations, Secure Auth
+- Call-to-action buttons: Browse Products, Vendors Directory, Get Started (role select)
 
 ### Modify
-- `UpgradeSummary` type: add `organizationCount: Nat` field
-- `getUpgradeSummary` implementation: include `organizationCount`
-- `preupgrade` / `postupgrade` hooks: persist organizations and lastOrgId
-- Frontend `useOrganizations.ts`: replace all localStorage logic with React Query hooks backed by the new backend APIs
-- Frontend `AdminPlaceholderPage.tsx`: call the new backend mutation hooks for org CRUD and vendor assignment/removal
-- Frontend `OrganizationsPage.tsx`: use new `useListOrganizations` hook (React Query, not localStorage)
-- Frontend `OrganizationDetailPage.tsx`: use new `useGetOrganization(orgId)` hook; orgId is now a Nat stringified
+- Replace "Phase 1: Building the foundation" headline/subheadline with accurate marketplace branding
+- Replace "Phase 1 Features" section with real feature cards
+- Replace "What's Coming Next?" section with a "How It Works" or platform overview section appropriate for a live marketplace
 
 ### Remove
-- All localStorage-based organization storage in `useOrganizations.ts`
-- `generateUUID`, `readOrganizations`, `writeOrganizations` helper functions in `useOrganizations.ts`
+- All phase-numbered placeholder content
+- "Phase 2: Data & Onboarding" and "Phase 3+: Advanced Features" future-phase lists
 
 ## Implementation Plan
-1. Add `Organization` type, stable vars, Map, and counter to `main.mo`
-2. Implement `listOrganizations`, `getOrganization`, `createOrganization`, `deleteOrganization`, `assignVendorToOrganization`, `removeVendorFromOrganization`, `getVendorOrganization` in `main.mo`
-3. Update `UpgradeSummary` and `getUpgradeSummary` to include `organizationCount`
-4. Update `preupgrade`/`postupgrade` to persist organizations
-5. Rewrite `useOrganizations.ts` hooks to use React Query + backend actor calls
-6. Update `AdminPlaceholderPage.tsx` to use new backend-backed mutation hooks; orgId is now `bigint`
-7. Update `OrganizationsPage.tsx` to use `useListOrganizations` hook
-8. Update `OrganizationDetailPage.tsx` to use `useGetOrganization` hook with numeric orgId
-9. Update `VendorCard` in `OrganizationDetailPage.tsx` to accept `vendorId: VendorId` (bigint) directly
+1. Rewrite LandingPage.tsx with accurate hero copy, real feature cards (6 features), and a "How It Works" 3-step section
+2. Add links to /products, /vendors, /organizations, and /select-role from the landing page
+3. Keep styling consistent with the existing Tailwind/shadcn design system
