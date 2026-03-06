@@ -8,10 +8,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { AlertCircle, ArrowLeft, ShieldCheck } from "lucide-react";
 import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  Loader2,
+  ShieldCheck,
+  ShoppingCart,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useAddToCart,
   useProductById,
   useVendorProfileByUser,
 } from "../hooks/useMarketplaceQueries";
@@ -20,6 +33,10 @@ import { PRODUCT_PLACEHOLDER } from "../utils/placeholders";
 export default function ProductDetailPage() {
   const { productId } = useParams({ strict: false });
   const navigate = useNavigate();
+  const { identity } = useInternetIdentity();
+  const addToCartMutation = useAddToCart();
+  const [quantity, setQuantity] = useState(1);
+  const [addedSuccess, setAddedSuccess] = useState(false);
 
   const productIdBigInt = productId ? BigInt(productId) : undefined;
   const {
@@ -37,6 +54,21 @@ export default function ProductDetailPage() {
       style: "currency",
       currency: currency || "USD",
     }).format(priceNum);
+  };
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    try {
+      await addToCartMutation.mutateAsync({
+        productId: product.id,
+        quantity: BigInt(quantity),
+      });
+      setAddedSuccess(true);
+      toast.success("Added to cart");
+      setTimeout(() => setAddedSuccess(false), 3000);
+    } catch {
+      toast.error("Failed to add to cart. Please try again.");
+    }
   };
 
   if (productLoading) {
@@ -151,6 +183,67 @@ export default function ProductDetailPage() {
                   <p className="text-sm text-muted-foreground">
                     Vendor: {product.ownerPrincipal.toString().slice(0, 8)}...
                     {product.ownerPrincipal.toString().slice(-6)}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Add to Cart Section */}
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="text-lg font-semibold">Add to Cart</h3>
+              {identity ? (
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="quantity">Quantity</Label>
+                    <Input
+                      data-ocid="product_detail.quantity.input"
+                      id="quantity"
+                      type="number"
+                      min={1}
+                      max={99}
+                      value={quantity}
+                      onChange={(e) =>
+                        setQuantity(
+                          Math.max(1, Number.parseInt(e.target.value) || 1),
+                        )
+                      }
+                      className="w-24"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      data-ocid="product_detail.add_to_cart.button"
+                      className="gap-2 min-w-[160px]"
+                      onClick={handleAddToCart}
+                      disabled={addToCartMutation.isPending}
+                    >
+                      {addToCartMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : addedSuccess ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <ShoppingCart className="h-4 w-4" />
+                      )}
+                      {addToCartMutation.isPending
+                        ? "Adding..."
+                        : addedSuccess
+                          ? "Added!"
+                          : "Add to Cart"}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 border rounded-lg bg-muted/50">
+                  <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    <button
+                      type="button"
+                      className="text-primary hover:underline font-medium"
+                      onClick={() => navigate({ to: "/select-role" })}
+                    >
+                      Sign in
+                    </button>{" "}
+                    to add this item to your cart
                   </p>
                 </div>
               )}

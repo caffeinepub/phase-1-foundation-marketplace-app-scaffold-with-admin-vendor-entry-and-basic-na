@@ -7,17 +7,35 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export type OrderId = bigint;
+export type Money = bigint;
+export type Timestamp = bigint;
 export interface BackendMetadata {
     version: Version;
     environment: Env;
 }
-export type Money = bigint;
-export type Timestamp = bigint;
+export interface OrderItem {
+    title: string;
+    productId: ProductId;
+    currency: string;
+    quantity: bigint;
+    price: Money;
+}
 export interface UserProfileWithPrincipal {
     principal: Principal;
     profile: UserProfile;
 }
 export type Name = string;
+export interface Order {
+    id: OrderId;
+    status: OrderStatus;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+    totalAmount: Money;
+    currency: string;
+    buyer: Principal;
+    items: Array<OrderItem>;
+}
 export type Url = string;
 export interface UpgradeSummary {
     lastProductId: bigint;
@@ -29,6 +47,10 @@ export interface UpgradeSummary {
 export type ProductCurrency = string;
 export type Version = string;
 export type ProductId = bigint;
+export interface CartItem {
+    productId: ProductId;
+    quantity: bigint;
+}
 export interface VendorProfile {
     id: VendorId;
     user: Principal;
@@ -57,6 +79,13 @@ export enum Env {
     dev = "dev",
     prod = "prod"
 }
+export enum OrderStatus {
+    shipped = "shipped",
+    cancelled = "cancelled",
+    pending = "pending",
+    delivered = "delivered",
+    confirmed = "confirmed"
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -64,24 +93,31 @@ export enum UserRole {
 }
 export interface backendInterface {
     addAdmin(adminPrincipal: Principal): Promise<void>;
+    addToCart(productId: ProductId, quantity: bigint): Promise<void>;
     addVendorProfile(profile: VendorProfile): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     bootstrapAdmins(principals: Array<Principal>): Promise<void>;
     bootstrapFirstAdmin(): Promise<void>;
     claimAppOwner(): Promise<void>;
+    clearCart(): Promise<void>;
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
     getAdmins(): Promise<Array<Principal>>;
+    getAllOrders(): Promise<Array<Order>>;
     getAllUserProfiles(): Promise<Array<UserProfileWithPrincipal>>;
     getAllVendorProfiles(): Promise<Array<VendorProfile>>;
     getAppOwner(): Promise<Principal | null>;
     getBackendMetadata(): Promise<BackendMetadata>;
+    getCallerOrders(): Promise<Array<Order>>;
     getCallerProducts(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCallerVendorProfile(): Promise<VendorProfile | null>;
+    getCart(): Promise<Array<CartItem>>;
+    getOrderById(orderId: OrderId): Promise<Order | null>;
     getProductById(productId: ProductId): Promise<Product | null>;
     getPublishedProducts(): Promise<Array<Product>>;
+    getTotalOrderCount(): Promise<bigint>;
     getTotalUserCount(): Promise<bigint>;
     getTotalVendorCount(): Promise<bigint>;
     getUpgradeSummary(): Promise<UpgradeSummary>;
@@ -91,9 +127,6 @@ export interface backendInterface {
     getVendorProfile(vendorId: VendorId): Promise<VendorProfile | null>;
     getVendorProfileByUser(owner: Principal): Promise<VendorProfile | null>;
     getVerifiedVendorProfiles(): Promise<Array<VendorProfile>>;
-    /**
-     * / Returns true if there are any admins in the system.
-     */
     hasAdmin(): Promise<boolean>;
     isAdmin(principal: Principal): Promise<boolean>;
     isAdminInternal(principal: Principal): Promise<boolean>;
@@ -102,7 +135,9 @@ export interface backendInterface {
     listPublishedProductsByVendor(vendorPrincipal: Principal): Promise<Array<Product>>;
     listVerifiedVendors(): Promise<Array<VendorProfile>>;
     ping(): Promise<boolean>;
+    placeOrder(): Promise<OrderId>;
     removeAdmin(adminPrincipal: Principal): Promise<void>;
+    removeFromCart(productId: ProductId): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setAdmins(admins: Array<Principal>): Promise<void>;
     updateProduct(productId: ProductId, title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<void>;

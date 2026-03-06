@@ -1,6 +1,8 @@
 import type { Principal } from "@dfinity/principal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
+  CartItem,
+  Order,
   Product,
   ProductId,
   UpgradeSummary,
@@ -475,6 +477,136 @@ export function useTotalUserCount() {
     queryFn: async () => {
       if (!actor) throw new Error("Actor not initialized");
       return actor.getTotalUserCount();
+    },
+    enabled: !!actor && !isFetching,
+    retry: false,
+  });
+}
+
+// Cart: Get current cart items
+export function useGetCart() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<CartItem[]>({
+    queryKey: ["cart"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getCart();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    retry: false,
+  });
+}
+
+// Cart: Add item to cart
+export function useAddToCart() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async ({
+      productId,
+      quantity,
+    }: { productId: ProductId; quantity: bigint }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.addToCart(productId, quantity);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+}
+
+// Cart: Remove item from cart
+export function useRemoveFromCart() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (productId: ProductId) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.removeFromCart(productId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+}
+
+// Cart: Clear entire cart
+export function useClearCart() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.clearCart();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+  });
+}
+
+// Cart: Place order from cart
+export function usePlaceOrder() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.placeOrder();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["callerOrders"] });
+    },
+  });
+}
+
+// Orders: Get caller's orders
+export function useCallerOrders() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<Order[]>({
+    queryKey: ["callerOrders"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getCallerOrders();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    retry: false,
+  });
+}
+
+// Orders: Get all orders (admin only)
+export function useAllOrders(enabled = true) {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<Order[]>({
+    queryKey: ["allOrders"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getAllOrders();
+    },
+    enabled: !!actor && !isFetching && enabled,
+    retry: false,
+  });
+}
+
+// Orders: Get total order count
+export function useTotalOrderCount() {
+  const { actor, isFetching } = useActor();
+
+  return useQuery<bigint>({
+    queryKey: ["totalOrderCount"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getTotalOrderCount();
     },
     enabled: !!actor && !isFetching,
     retry: false,

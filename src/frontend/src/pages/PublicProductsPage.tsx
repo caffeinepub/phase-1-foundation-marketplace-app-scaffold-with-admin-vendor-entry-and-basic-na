@@ -1,5 +1,6 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,17 +17,37 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle, Package, Search } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  Package,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
 import { useMemo, useState } from "react";
-import { usePublishedProducts } from "../hooks/useMarketplaceQueries";
+import { toast } from "sonner";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useAddToCart,
+  usePublishedProducts,
+} from "../hooks/useMarketplaceQueries";
 import { PRODUCT_PLACEHOLDER } from "../utils/placeholders";
 
 export default function PublicProductsPage() {
   const navigate = useNavigate();
+  const { identity } = useInternetIdentity();
   const { data: products, isLoading, error } = usePublishedProducts();
+  const addToCartMutation = useAddToCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [addingProductId, setAddingProductId] = useState<string | null>(null);
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -67,6 +88,19 @@ export default function PublicProductsPage() {
       to: "/products/$productId",
       params: { productId: productId.toString() },
     });
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent, productId: bigint) => {
+    e.stopPropagation();
+    setAddingProductId(productId.toString());
+    try {
+      await addToCartMutation.mutateAsync({ productId, quantity: 1n });
+      toast.success("Added to cart");
+    } catch {
+      toast.error("Failed to add to cart. Please try again.");
+    } finally {
+      setAddingProductId(null);
+    }
   };
 
   return (
@@ -153,48 +187,94 @@ export default function PublicProductsPage() {
 
         {/* Products Grid */}
         {!isLoading && !error && filteredProducts.length > 0 && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <button
-                key={product.id.toString()}
-                type="button"
-                onClick={() => handleProductClick(product.id)}
-                className="group cursor-pointer text-left w-full"
-              >
-                <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50">
-                  <CardHeader className="space-y-4">
-                    <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
-                      <img
-                        src={product.imageUrl || PRODUCT_PLACEHOLDER}
-                        alt={product.title}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
-                          {product.title}
-                        </CardTitle>
-                      </div>
-                      <CardDescription className="line-clamp-2">
-                        {product.description}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-primary">
-                        {formatPrice(product.price, product.currency)}
-                      </span>
-                      {product.category && (
-                        <Badge variant="secondary">{product.category}</Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </button>
-            ))}
-          </div>
+          <TooltipProvider>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((product, index) => {
+                const isAdding = addingProductId === product.id.toString();
+                return (
+                  <article
+                    key={product.id.toString()}
+                    className="group flex flex-col"
+                  >
+                    <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50 flex flex-col">
+                      <button
+                        type="button"
+                        onClick={() => handleProductClick(product.id)}
+                        className="text-left flex-1 flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-t-lg"
+                      >
+                        <CardHeader className="space-y-4 flex-1">
+                          <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
+                            <img
+                              src={product.imageUrl || PRODUCT_PLACEHOLDER}
+                              alt={product.title}
+                              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors">
+                                {product.title}
+                              </CardTitle>
+                            </div>
+                            <CardDescription className="line-clamp-2">
+                              {product.description}
+                            </CardDescription>
+                          </div>
+                        </CardHeader>
+                      </button>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold text-primary">
+                            {formatPrice(product.price, product.currency)}
+                          </span>
+                          {product.category && (
+                            <Badge variant="secondary">
+                              {product.category}
+                            </Badge>
+                          )}
+                        </div>
+                        {identity ? (
+                          <Button
+                            data-ocid={`products.add_to_cart.button.${index + 1}`}
+                            className="w-full gap-2"
+                            size="sm"
+                            disabled={isAdding}
+                            onClick={(e) => handleAddToCart(e, product.id)}
+                          >
+                            {isAdding ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ShoppingCart className="h-4 w-4" />
+                            )}
+                            {isAdding ? "Adding..." : "Add to Cart"}
+                          </Button>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <Button
+                                  data-ocid={`products.add_to_cart.button.${index + 1}`}
+                                  className="w-full gap-2"
+                                  size="sm"
+                                  disabled
+                                >
+                                  <ShoppingCart className="h-4 w-4" />
+                                  Add to Cart
+                                </Button>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Sign in to add to cart</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </article>
+                );
+              })}
+            </div>
+          </TooltipProvider>
         )}
       </div>
     </div>

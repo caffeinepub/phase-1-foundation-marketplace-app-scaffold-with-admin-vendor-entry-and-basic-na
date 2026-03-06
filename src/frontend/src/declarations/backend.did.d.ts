@@ -11,10 +11,34 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface BackendMetadata { 'version' : Version, 'environment' : Env }
+export interface CartItem { 'productId' : ProductId, 'quantity' : bigint }
 export type Env = { 'dev' : null } |
   { 'prod' : null };
 export type Money = bigint;
 export type Name = string;
+export interface Order {
+  'id' : OrderId,
+  'status' : OrderStatus,
+  'createdAt' : Timestamp,
+  'updatedAt' : Timestamp,
+  'totalAmount' : Money,
+  'currency' : string,
+  'buyer' : Principal,
+  'items' : Array<OrderItem>,
+}
+export type OrderId = bigint;
+export interface OrderItem {
+  'title' : string,
+  'productId' : ProductId,
+  'currency' : string,
+  'quantity' : bigint,
+  'price' : Money,
+}
+export type OrderStatus = { 'shipped' : null } |
+  { 'cancelled' : null } |
+  { 'pending' : null } |
+  { 'delivered' : null } |
+  { 'confirmed' : null };
 export interface Product {
   'id' : ProductId,
   'title' : string,
@@ -59,27 +83,34 @@ export type Version = string;
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAdmin' : ActorMethod<[Principal], undefined>,
+  'addToCart' : ActorMethod<[ProductId, bigint], undefined>,
   'addVendorProfile' : ActorMethod<[VendorProfile], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'bootstrapAdmins' : ActorMethod<[Array<Principal>], undefined>,
   'bootstrapFirstAdmin' : ActorMethod<[], undefined>,
   'claimAppOwner' : ActorMethod<[], undefined>,
+  'clearCart' : ActorMethod<[], undefined>,
   'createProduct' : ActorMethod<
     [string, string, bigint, string, string, string, boolean],
     ProductId
   >,
   'createVendorProfile' : ActorMethod<[string, string], VendorId>,
   'getAdmins' : ActorMethod<[], Array<Principal>>,
+  'getAllOrders' : ActorMethod<[], Array<Order>>,
   'getAllUserProfiles' : ActorMethod<[], Array<UserProfileWithPrincipal>>,
   'getAllVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
   'getAppOwner' : ActorMethod<[], [] | [Principal]>,
   'getBackendMetadata' : ActorMethod<[], BackendMetadata>,
+  'getCallerOrders' : ActorMethod<[], Array<Order>>,
   'getCallerProducts' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCallerVendorProfile' : ActorMethod<[], [] | [VendorProfile]>,
+  'getCart' : ActorMethod<[], Array<CartItem>>,
+  'getOrderById' : ActorMethod<[OrderId], [] | [Order]>,
   'getProductById' : ActorMethod<[ProductId], [] | [Product]>,
   'getPublishedProducts' : ActorMethod<[], Array<Product>>,
+  'getTotalOrderCount' : ActorMethod<[], bigint>,
   'getTotalUserCount' : ActorMethod<[], bigint>,
   'getTotalVendorCount' : ActorMethod<[], bigint>,
   'getUpgradeSummary' : ActorMethod<[], UpgradeSummary>,
@@ -89,9 +120,6 @@ export interface _SERVICE {
   'getVendorProfile' : ActorMethod<[VendorId], [] | [VendorProfile]>,
   'getVendorProfileByUser' : ActorMethod<[Principal], [] | [VendorProfile]>,
   'getVerifiedVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
-  /**
-   * / Returns true if there are any admins in the system.
-   */
   'hasAdmin' : ActorMethod<[], boolean>,
   'isAdmin' : ActorMethod<[Principal], boolean>,
   'isAdminInternal' : ActorMethod<[Principal], boolean>,
@@ -100,7 +128,9 @@ export interface _SERVICE {
   'listPublishedProductsByVendor' : ActorMethod<[Principal], Array<Product>>,
   'listVerifiedVendors' : ActorMethod<[], Array<VendorProfile>>,
   'ping' : ActorMethod<[], boolean>,
+  'placeOrder' : ActorMethod<[], OrderId>,
   'removeAdmin' : ActorMethod<[Principal], undefined>,
+  'removeFromCart' : ActorMethod<[ProductId], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setAdmins' : ActorMethod<[Array<Principal>], undefined>,
   'updateProduct' : ActorMethod<

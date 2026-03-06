@@ -1,4 +1,5 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,12 +11,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, CheckCircle, Store } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { AlertCircle, Building2, CheckCircle, Store } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   useCallerVendorProfile,
   useUpsertCallerVendorProfile,
 } from "../hooks/useMarketplaceQueries";
+import { useVendorOrganization } from "../hooks/useOrganizations";
 
 export default function VendorProfilePage() {
   const {
@@ -24,6 +27,9 @@ export default function VendorProfilePage() {
     isFetched,
   } = useCallerVendorProfile();
   const upsertMutation = useUpsertCallerVendorProfile();
+
+  const vendorIdStr = vendorProfile ? vendorProfile.id.toString() : "";
+  const vendorOrg = useVendorOrganization(vendorIdStr);
 
   const [companyName, setCompanyName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -164,6 +170,69 @@ export default function VendorProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Organization Membership Card */}
+      {vendorProfile && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Organization</CardTitle>
+            </div>
+            <CardDescription>
+              Your organization membership in the marketplace
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {vendorOrg ? (
+              <div className="flex items-center gap-3">
+                {vendorOrg.logoUrl ? (
+                  <img
+                    src={vendorOrg.logoUrl}
+                    alt={vendorOrg.name}
+                    className="h-10 w-10 rounded-md object-cover border border-border flex-shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">
+                    {vendorOrg.name}
+                  </p>
+                  <Badge variant="secondary" className="text-xs mt-0.5">
+                    Member
+                  </Badge>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link
+                    to="/organizations/$orgId"
+                    params={{ orgId: vendorOrg.id }}
+                  >
+                    View
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm">Not assigned to an organization</p>
+                  <p className="text-xs">
+                    Contact an admin to be added to an organization.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

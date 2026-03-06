@@ -11,7 +11,11 @@ import RequireAuth from "./components/auth/RequireAuth";
 import RequireRoleMode from "./components/auth/RequireRoleMode";
 import AppLayout from "./components/layout/AppLayout";
 import AdminPlaceholderPage from "./pages/AdminPlaceholderPage";
+import CartPage from "./pages/CartPage";
 import LandingPage from "./pages/LandingPage";
+import OrdersPage from "./pages/OrdersPage";
+import OrganizationDetailPage from "./pages/OrganizationDetailPage";
+import OrganizationsPage from "./pages/OrganizationsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import PublicProductsPage from "./pages/PublicProductsPage";
 import RoleSelectPage from "./pages/RoleSelectPage";
@@ -57,6 +61,30 @@ const vendorStorefrontRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/vendors/$vendorId",
   component: VendorStorefrontPage,
+});
+
+const organizationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/organizations",
+  component: OrganizationsPage,
+});
+
+const organizationDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/organizations/$orgId",
+  component: OrganizationDetailPage,
+});
+
+const cartRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/cart",
+  component: CartPage,
+});
+
+const ordersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders",
+  component: OrdersPage,
 });
 
 const roleSelectRoute = createRoute({
@@ -125,6 +153,10 @@ const routeTree = rootRoute.addChildren([
   productDetailRoute,
   vendorsDirectoryRoute,
   vendorStorefrontRoute,
+  organizationsRoute,
+  organizationDetailRoute,
+  cartRoute,
+  ordersRoute,
   roleSelectRoute,
   adminRoute,
   vendorRoute.addChildren([

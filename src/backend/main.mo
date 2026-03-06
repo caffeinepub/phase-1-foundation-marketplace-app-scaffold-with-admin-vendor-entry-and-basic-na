@@ -41,6 +41,40 @@ actor {
   public type VendorId = Nat;
   type Timestamp = Int;
 
+  type CartItem = {
+    productId : ProductId;
+    quantity : Nat;
+  };
+
+  type OrderStatus = {
+    #pending;
+    #confirmed;
+    #shipped;
+    #delivered;
+    #cancelled;
+  };
+
+  type OrderItem = {
+    productId : ProductId;
+    title : Text;
+    price : Money;
+    currency : Text;
+    quantity : Nat;
+  };
+
+  type OrderId = Nat;
+
+  type Order = {
+    id : OrderId;
+    buyer : Principal;
+    items : [OrderItem];
+    totalAmount : Money;
+    currency : Text;
+    status : OrderStatus;
+    createdAt : Timestamp;
+    updatedAt : Timestamp;
+  };
+
   var accessControlState = Auth.initState();
   var appOwner : ?Principal = null;
   include MixinAuthorization(accessControlState);
@@ -53,12 +87,19 @@ actor {
   stable var stableLastVendorId : Nat = 0;
   stable var stableLastProductId : Nat = 0;
 
+  stable var stableOrders : [(Nat, Order)] = [];
+  stable var stableCarts : [(Principal, [CartItem])] = [];
+  stable var stableLastOrderId : Nat = 0;
+
   var userProfiles = Map.fromIter<Principal, UserProfile>(stableUserProfiles.vals());
   var vendors = Map.fromIter<VendorId, VendorProfile>(stableVendors.vals());
   var products = Map.fromIter<Nat, Product>(stableProducts.vals());
   var lastVendorId = stableLastVendorId;
   var lastProductId = stableLastProductId;
   var adminAllowlist = Map.fromIter(stableAdminAllowlist.vals());
+  var carts = Map.fromIter<Principal, [CartItem]>(stableCarts.vals());
+  var orders = Map.fromIter<Nat, Order>(stableOrders.vals());
+  var lastOrderId = stableLastOrderId;
 
   public type Product = {
     id : ProductId;
@@ -97,7 +138,6 @@ actor {
     name : Text;
   };
 
-  // New type for admin-only getAllUserProfiles call
   public type UserProfileWithPrincipal = {
     principal : Principal;
     profile : UserProfile;
@@ -120,16 +160,16 @@ actor {
     stableAppOwner := appOwner;
     stableLastVendorId := lastVendorId;
     stableLastProductId := lastProductId;
+    stableCarts := carts.entries().toArray();
+    stableOrders := orders.entries().toArray();
+    stableLastOrderId := lastOrderId;
   };
 
   system func postupgrade() {};
 
   public query ({ caller }) func ping() : async Bool { true };
   public query ({ caller }) func whoami() : async Principal { caller };
-
-  public query ({ caller }) func getAppOwner() : async ?Principal {
-    appOwner;
-  };
+  public query ({ caller }) func getAppOwner() : async ?Principal { appOwner };
 
   public query ({ caller }) func isCallerAppOwner() : async Bool {
     switch (appOwner) {
@@ -146,6 +186,87 @@ actor {
       case (null) {
         appOwner := ?caller;
       };
+    };
+  };
+
+  public query ({ caller }) func isAdminInternal(principal : Principal) : async Bool {
+    adminAllowlist.containsKey(principal);
+  };
+
+  public query ({ caller }) func isAdmin(principal : Principal) : async Bool {
+    adminAllowlist.containsKey(principal);
+  };
+
+  public query ({ caller }) func hasAdmin() : async Bool {
+    not adminAllowlist.isEmpty();
+  };
+
+  public query ({ caller }) func getAdmins() : async [Principal] {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can view all admin profiles");
+    };
+    adminAllowlist.keys().toArray();
+  };
+
+  public shared ({ caller }) func setAdmins(admins : [Principal]) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can set admin list");
+    };
+
+    if (admins.size() == 0) {
+      Runtime.trap("Must provide at least one admin: Cannot have empty admin list");
+    };
+
+    adminAllowlist.clear();
+    for (admin in admins.values()) {
+      adminAllowlist.add(admin, true);
+    };
+  };
+
+  public shared ({ caller }) func addAdmin(adminPrincipal : Principal) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can add new admin");
+    };
+
+    adminAllowlist.add(adminPrincipal, true);
+  };
+
+  public shared ({ caller }) func removeAdmin(adminPrincipal : Principal) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only app owner or admins can remove admin");
+    };
+
+    if (adminAllowlist.size() == 1 and adminAllowlist.containsKey(adminPrincipal)) {
+      Runtime.trap("Cannot remove the last admin");
+    };
+
+    switch (adminAllowlist.get(adminPrincipal)) {
+      case (null) { Runtime.trap("Principal not in admin list") };
+      case (?_) {
+        adminAllowlist.remove(adminPrincipal);
+      };
+    };
+  };
+
+  public shared ({ caller }) func bootstrapFirstAdmin() : async () {
+    if (not adminAllowlist.isEmpty()) {
+      Runtime.trap("Admin already exists in canister. Use addAdmin instead.");
+    };
+
+    adminAllowlist.add(caller, true);
+  };
+
+  public shared ({ caller }) func bootstrapAdmins(principals : [Principal]) : async () {
+    if (not adminAllowlist.isEmpty()) {
+      Runtime.trap("Admin list not empty. Use setAdmins instead.");
+    };
+
+    if (principals.size() == 0) {
+      Runtime.trap("Must provide at least one admin principal");
+    };
+
+    for (principal in principals.values()) {
+      adminAllowlist.add(principal, true);
     };
   };
 
@@ -170,7 +291,6 @@ actor {
     userProfiles.add(caller, profile);
   };
 
-  // New admin-only query to get all user profiles.
   public query ({ caller }) func getAllUserProfiles() : async [UserProfileWithPrincipal] {
     if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can access all user profiles");
@@ -183,7 +303,6 @@ actor {
     );
   };
 
-  // New query function to get total user count.
   public query ({ caller }) func getTotalUserCount() : async Nat {
     userProfiles.size();
   };
@@ -464,86 +583,175 @@ actor {
     ).toArray();
   };
 
-  public shared ({ caller }) func isAdminInternal(principal : Principal) : async Bool {
-    adminAllowlist.containsKey(principal);
-  };
+  // === Cart and Order Management ===
 
-  public query ({ caller }) func isAdmin(principal : Principal) : async Bool {
-    adminAllowlist.containsKey(principal);
-  };
-
-  /// Returns true if there are any admins in the system.
-  public query ({ caller }) func hasAdmin() : async Bool {
-    not adminAllowlist.isEmpty();
-  };
-
-  public query ({ caller }) func getAdmins() : async [Principal] {
-    if (not isAppOwnerOrAdmin(caller)) {
-      Runtime.trap("Unauthorized: Only app owner or admins can view all admin profiles");
-    };
-    adminAllowlist.keys().toArray();
-  };
-
-  public shared ({ caller }) func setAdmins(admins : [Principal]) : async () {
-    if (not isAppOwnerOrAdmin(caller)) {
-      Runtime.trap("Unauthorized: Only app owner or admins can set admin list");
+  // Add item to cart (authenticated user only).
+  public shared ({ caller }) func addToCart(productId : ProductId, quantity : Nat) : async () {
+    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can add to cart");
     };
 
-    if (admins.size() == 0) {
-      Runtime.trap("Must provide at least one admin: Cannot have empty admin list");
+    if (quantity == 0) {
+      Runtime.trap("Quantity must be greater than 0");
     };
 
-    adminAllowlist.clear();
-    for (admin in admins.values()) {
-      adminAllowlist.add(admin, true);
-    };
-  };
-
-  public shared ({ caller }) func addAdmin(adminPrincipal : Principal) : async () {
-    if (not isAppOwnerOrAdmin(caller)) {
-      Runtime.trap("Unauthorized: Only app owner or admins can add new admin");
-    };
-
-    adminAllowlist.add(adminPrincipal, true);
-  };
-
-  public shared ({ caller }) func removeAdmin(adminPrincipal : Principal) : async () {
-    if (not isAppOwnerOrAdmin(caller)) {
-      Runtime.trap("Unauthorized: Only app owner or admins can remove admin");
-    };
-
-    // Prevent removing the last admin
-    if (adminAllowlist.size() == 1 and adminAllowlist.containsKey(adminPrincipal)) {
-      Runtime.trap("Cannot remove the last admin");
-    };
-
-    switch (adminAllowlist.get(adminPrincipal)) {
-      case (null) { Runtime.trap("Principal not in admin list") };
+    switch (products.get(productId)) {
+      case (null) { Runtime.trap("Product does not exist") };
       case (?_) {
-        adminAllowlist.remove(adminPrincipal);
+        let existingCart = switch (carts.get(caller)) {
+          case (?items) { items };
+          case (null) { [] };
+        };
+
+        let updatedCart = switch (existingCart.find(func(item) { item.productId == productId })) {
+          case (null) {
+            existingCart.concat([
+              { productId; quantity },
+            ]);
+          };
+          case (?_) {
+            existingCart.map(
+              func(item) {
+                if (item.productId == productId) {
+                  { productId = item.productId; quantity = item.quantity + quantity };
+                } else {
+                  item;
+                };
+              }
+            );
+          };
+        };
+        carts.add(caller, updatedCart);
       };
     };
   };
 
-  public shared ({ caller }) func bootstrapFirstAdmin() : async () {
-    if (not adminAllowlist.isEmpty()) {
-      Runtime.trap("Admin already exists in canister. Use addAdmin instead.");
+  // Remove item from cart (authenticated user only).
+  public shared ({ caller }) func removeFromCart(productId : ProductId) : async () {
+    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can remove from cart");
     };
 
-    adminAllowlist.add(caller, true);
+    let currentCart = switch (carts.get(caller)) {
+      case (?items) { items };
+      case (null) { Runtime.trap("Cart is empty") };
+    };
+
+    let updatedCart = currentCart.filter(func(item) { item.productId != productId });
+
+    if (updatedCart.size() == currentCart.size()) {
+      Runtime.trap("Product not found in cart");
+    };
+
+    carts.add(caller, updatedCart);
   };
 
-  public shared ({ caller }) func bootstrapAdmins(principals : [Principal]) : async () {
-    if (not adminAllowlist.isEmpty()) {
-      Runtime.trap("Admin list not empty. Use setAdmins instead.");
+  // Get caller's cart (returns empty if not logged in).
+  public query ({ caller }) func getCart() : async [CartItem] {
+    switch (carts.get(caller)) {
+      case (?items) { items };
+      case (null) { [] };
+    };
+  };
+
+  // Clear cart (authenticated user only).
+  public shared ({ caller }) func clearCart() : async () {
+    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can clear cart");
     };
 
-    if (principals.size() == 0) {
-      Runtime.trap("Must provide at least one admin principal");
+    carts.remove(caller);
+  };
+
+  // Place order (converts cart to Order, clears cart).
+  public shared ({ caller }) func placeOrder() : async OrderId {
+    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only users can place orders");
     };
 
-    for (principal in principals.values()) {
-      adminAllowlist.add(principal, true);
+    let cartItems = switch (carts.get(caller)) {
+      case (?items) { items };
+      case (null) { Runtime.trap("Cart is empty") };
     };
+
+    if (cartItems.size() == 0) {
+      Runtime.trap("Cart is empty");
+    };
+
+    var totalAmount : Money = 0;
+    let orderItems = cartItems.map(
+      func(cartItem) {
+        switch (products.get(cartItem.productId)) {
+          case (null) { Runtime.trap("Product not found: " # cartItem.productId.toText()) };
+          case (?product) {
+            totalAmount += product.price * cartItem.quantity;
+            {
+              productId = product.id;
+              title = product.title;
+              price = product.price;
+              currency = product.currency;
+              quantity = cartItem.quantity;
+            };
+          };
+        };
+      }
+    );
+
+    let newOrderId = lastOrderId;
+    let timestamp = Time.now();
+
+    let order : Order = {
+      id = newOrderId;
+      buyer = caller;
+      items = orderItems;
+      totalAmount;
+      currency = "ICP";
+      status = #pending;
+      createdAt = timestamp;
+      updatedAt = timestamp;
+    };
+
+    orders.add(newOrderId, order);
+    lastOrderId += 1;
+    carts.remove(caller);
+
+    newOrderId;
+  };
+
+  // Get all orders for caller (authenticated user only).
+  public query ({ caller }) func getCallerOrders() : async [Order] {
+    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can view their orders");
+    };
+    orders.values().toArray().filter(func(order) { order.buyer == caller });
+  };
+
+  // Get order by ID (must own or be admin/appowner).
+  public query ({ caller }) func getOrderById(orderId : OrderId) : async ?Order {
+    switch (orders.get(orderId)) {
+      case (null) { null };
+      case (?order) {
+        if (order.buyer == caller) {
+          ?order;
+        } else if (isAppOwnerOrAdmin(caller)) {
+          ?order;
+        } else {
+          null;
+        };
+      };
+    };
+  };
+
+  // Get all orders (admin/appowner only).
+  public query ({ caller }) func getAllOrders() : async [Order] {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admin or app owner can access all orders");
+    };
+    orders.values().toArray();
+  };
+
+  // Get total order count.
+  public query ({ caller }) func getTotalOrderCount() : async Nat {
+    orders.size();
   };
 };

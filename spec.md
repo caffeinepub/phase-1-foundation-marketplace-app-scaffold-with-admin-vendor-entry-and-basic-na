@@ -1,30 +1,48 @@
 # Multi-Vendor Marketplace
 
 ## Current State
-
-The backend (`main.mo` v2.2.0) has full CRUD for vendors, products, user profiles, admin allowlist, and app owner. All state lives in regular mutable `var` and `Map` — none of it survives a canister upgrade. The frontend is fully wired to all existing APIs.
+- Organizations are stored only in browser localStorage via `useOrganizations.ts` hooks
+- Organization data (name, description, logoUrl, vendorIds, createdAt) is not persisted on the backend canister
+- All other marketplace data (vendors, products, users, orders, admins, appOwner) uses stable Motoko storage with preupgrade/postupgrade hooks
+- The Admin Dashboard manages organizations locally (create, delete, assign/remove vendors)
+- Public OrganizationsPage and OrganizationDetailPage read from localStorage
+- VendorCard in OrganizationDetailPage fetches vendor profiles via backend by vendorId
 
 ## Requested Changes (Diff)
 
 ### Add
-- `stable var` declarations for every piece of backend state: `stableVendors`, `stableProducts`, `stableUserProfiles`, `stableAdminAllowlist`, `stableAppOwner`, `stableLastVendorId`, `stableLastProductId`, `stableAccessControlRoles`.
-- `system func preupgrade()` — copies all in-memory Maps and vars into the stable vars before each upgrade.
-- `system func postupgrade()` — no-op body (Maps are re-loaded from stable vars during actor construction).
-- In-memory Maps initialised from stable vars at actor construction time using `Map.fromIter`.
-- Bump `version` to `"2.3.0"` and bump `getUpgradeSummary` version field to `3`.
+- `Organization` type in Motoko: `{ id: Nat; name: Text; description: Text; logoUrl: Text; adminPrincipal: Principal; vendorIds: [Nat]; createdAt: Int }`
+- Stable storage for organizations: `stableOrganizations : [(Nat, Organization)]` and `stableLastOrgId : Nat`
+- In-memory `organizations` Map and `lastOrgId` counter, populated in preupgrade/postupgrade
+- Backend query: `listOrganizations() : async [Organization]` — public, returns all
+- Backend query: `getOrganization(orgId: Nat) : async ?Organization` — public
+- Backend update: `createOrganization(name, description, logoUrl) : async Nat` — admin/appOwner only
+- Backend update: `deleteOrganization(orgId: Nat) : async ()` — admin/appOwner only
+- Backend update: `assignVendorToOrganization(orgId: Nat, vendorId: Nat) : async ()` — admin/appOwner only; enforces exclusive membership (removes vendor from any prior org first)
+- Backend update: `removeVendorFromOrganization(orgId: Nat, vendorId: Nat) : async ()` — admin/appOwner only
+- Backend query: `getVendorOrganization(vendorId: Nat) : async ?Organization` — public, returns the org a vendor belongs to (if any)
+- `organizationCount` added to `UpgradeSummary`
 
 ### Modify
-- All in-memory `var` declarations for `vendors`, `products`, `userProfiles`, `adminAllowlist`, `appOwner`, `lastVendorId`, `lastProductId` must be loaded from their stable counterparts at startup.
-- `accessControlState.userRoles` and `adminAssigned` restored from `stableAccessControlRoles` at startup.
+- `UpgradeSummary` type: add `organizationCount: Nat` field
+- `getUpgradeSummary` implementation: include `organizationCount`
+- `preupgrade` / `postupgrade` hooks: persist organizations and lastOrgId
+- Frontend `useOrganizations.ts`: replace all localStorage logic with React Query hooks backed by the new backend APIs
+- Frontend `AdminPlaceholderPage.tsx`: call the new backend mutation hooks for org CRUD and vendor assignment/removal
+- Frontend `OrganizationsPage.tsx`: use new `useListOrganizations` hook (React Query, not localStorage)
+- Frontend `OrganizationDetailPage.tsx`: use new `useGetOrganization(orgId)` hook; orgId is now a Nat stringified
 
 ### Remove
-- Nothing — all existing APIs, types, and logic remain unchanged.
+- All localStorage-based organization storage in `useOrganizations.ts`
+- `generateUUID`, `readOrganizations`, `writeOrganizations` helper functions in `useOrganizations.ts`
 
 ## Implementation Plan
-
-1. Add eight `stable var` declarations above the in-memory state block.
-2. Change in-memory `var` initialisers to use `Map.fromIter` over the matching stable var.
-3. Restore `appOwner` and `accessControlState` from stable vars at startup.
-4. Add `preupgrade` system function that serialises all Maps and vars to stable storage.
-5. Add `postupgrade` system function (empty body).
-6. Keep all existing query and update endpoints, types, and permission logic exactly as-is.
+1. Add `Organization` type, stable vars, Map, and counter to `main.mo`
+2. Implement `listOrganizations`, `getOrganization`, `createOrganization`, `deleteOrganization`, `assignVendorToOrganization`, `removeVendorFromOrganization`, `getVendorOrganization` in `main.mo`
+3. Update `UpgradeSummary` and `getUpgradeSummary` to include `organizationCount`
+4. Update `preupgrade`/`postupgrade` to persist organizations
+5. Rewrite `useOrganizations.ts` hooks to use React Query + backend actor calls
+6. Update `AdminPlaceholderPage.tsx` to use new backend-backed mutation hooks; orgId is now `bigint`
+7. Update `OrganizationsPage.tsx` to use `useListOrganizations` hook
+8. Update `OrganizationDetailPage.tsx` to use `useGetOrganization` hook with numeric orgId
+9. Update `VendorCard` in `OrganizationDetailPage.tsx` to accept `vendorId: VendorId` (bigint) directly

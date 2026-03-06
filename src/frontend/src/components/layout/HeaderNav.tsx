@@ -7,9 +7,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Building2, Package, Shield, Store, User } from "lucide-react";
+import {
+  Building2,
+  Network,
+  Package,
+  Shield,
+  ShoppingCart,
+  Store,
+  User,
+} from "lucide-react";
 import { useInternetIdentity } from "../../hooks/useInternetIdentity";
 import {
+  useGetCart,
   useIsCallerAdmin,
   useIsCallerAppOwner,
 } from "../../hooks/useMarketplaceQueries";
@@ -22,8 +31,14 @@ export default function HeaderNav() {
   const { data: isAdmin, isLoading: isAdminLoading } = useIsCallerAdmin();
   const { data: isAppOwner, isLoading: isAppOwnerLoading } =
     useIsCallerAppOwner();
+  const { data: cartItems } = useGetCart();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+
+  const cartItemCount =
+    identity && cartItems
+      ? cartItems.reduce((sum, item) => sum + Number(item.quantity), 0)
+      : 0;
 
   const isActive = (path: string) =>
     currentPath === path || currentPath.startsWith(`${path}/`);
@@ -76,8 +91,28 @@ export default function HeaderNav() {
                 </Link>
               </Button>
 
+              <Button
+                variant={isActive("/organizations") ? "secondary" : "ghost"}
+                size="sm"
+                asChild
+                data-ocid="nav.organizations.link"
+              >
+                <Link to="/organizations">
+                  <Network className="h-4 w-4 mr-2" />
+                  Organizations
+                </Link>
+              </Button>
+
               {identity && (
                 <>
+                  <Button
+                    variant={isActive("/orders") ? "secondary" : "ghost"}
+                    size="sm"
+                    asChild
+                  >
+                    <Link to="/orders">Orders</Link>
+                  </Button>
+
                   {isAuthLoading ? (
                     <Button variant="ghost" size="sm" disabled>
                       <Shield className="h-4 w-4 mr-2 animate-pulse" />
@@ -133,6 +168,21 @@ export default function HeaderNav() {
           </div>
 
           <div className="flex items-center gap-4">
+            {identity && (
+              <Link
+                to="/cart"
+                data-ocid="nav.cart.link"
+                className="relative flex items-center justify-center h-9 w-9 rounded-md hover:bg-secondary transition-colors"
+                aria-label="Shopping cart"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground leading-none">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                )}
+              </Link>
+            )}
             {roleMode && (
               <Badge variant="outline" className="hidden sm:flex">
                 {roleMode === "admin" ? (

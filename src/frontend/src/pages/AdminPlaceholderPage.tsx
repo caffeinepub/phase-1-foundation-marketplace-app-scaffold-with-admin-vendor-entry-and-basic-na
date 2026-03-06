@@ -8,30 +8,53 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { Principal } from "@dfinity/principal";
 import {
   Activity,
   AlertCircle,
   ArrowRight,
+  Building2,
   CalendarClock,
   CheckCircle,
   Crown,
   Database,
   Info,
+  Plus,
   Shield,
+  ShoppingBag,
   Store,
+  Trash2,
   UserMinus,
   UserPlus,
   Users,
+  X,
 } from "lucide-react";
 import { useState } from "react";
-import type { VendorId } from "../backend";
+import type { OrderStatus, VendorId } from "../backend";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAddAdmin,
+  useAllOrders,
   useAllUserProfiles,
   useAllVendorProfiles,
   useBootstrapFirstAdmin,
@@ -42,10 +65,66 @@ import {
   useIsCallerAdmin,
   useIsCallerAppOwner,
   useRemoveAdmin,
+  useTotalOrderCount,
   useTotalUserCount,
   useUpgradeSummary,
   useVerifyVendor,
 } from "../hooks/useMarketplaceQueries";
+import {
+  useAssignVendorToOrg,
+  useCreateOrganization,
+  useDeleteOrganization,
+  useOrganizationStats,
+  useOrganizations,
+  useRemoveVendorFromOrg,
+} from "../hooks/useOrganizations";
+
+function getOrderStatusConfig(status: OrderStatus | string): {
+  label: string;
+  className: string;
+} {
+  switch (status) {
+    case "pending":
+      return {
+        label: "Pending",
+        className:
+          "border-yellow-400 text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/30",
+      };
+    case "confirmed":
+      return {
+        label: "Confirmed",
+        className:
+          "border-blue-400 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30",
+      };
+    case "shipped":
+      return {
+        label: "Shipped",
+        className:
+          "border-orange-400 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30",
+      };
+    case "delivered":
+      return {
+        label: "Delivered",
+        className:
+          "border-green-400 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30",
+      };
+    case "cancelled":
+      return {
+        label: "Cancelled",
+        className:
+          "border-red-400 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30",
+      };
+    default:
+      return { label: String(status), className: "" };
+  }
+}
+
+function formatAdminPrice(amount: bigint, currency: string): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency || "USD",
+  }).format(Number(amount) / 100);
+}
 
 export default function AdminPlaceholderPage() {
   const { identity } = useInternetIdentity();
@@ -83,6 +162,13 @@ export default function AdminPlaceholderPage() {
     error: usersError,
   } = useAllUserProfiles(isAuthorized);
 
+  const { data: totalOrderCount } = useTotalOrderCount();
+  const {
+    data: allOrders,
+    isLoading: ordersLoading,
+    error: ordersError,
+  } = useAllOrders(isAuthorized);
+
   const verifyVendorMutation = useVerifyVendor();
   const addAdminMutation = useAddAdmin();
   const removeAdminMutation = useRemoveAdmin();
@@ -95,6 +181,64 @@ export default function AdminPlaceholderPage() {
   const [appOwnerError, setAppOwnerError] = useState<string | null>(null);
   const [appOwnerSuccess, setAppOwnerSuccess] = useState<string | null>(null);
   const [newAdminPrincipal, setNewAdminPrincipal] = useState("");
+
+  // Organizations state
+  const { data: organizations = [] } = useOrganizations();
+  const { totalOrgs, totalVendorsAssigned } = useOrganizationStats();
+  const createOrgMutation = useCreateOrganization();
+  const deleteOrgMutation = useDeleteOrganization();
+  const assignVendorMutation = useAssignVendorToOrg();
+  const removeVendorMutation = useRemoveVendorFromOrg();
+
+  const [createOrgOpen, setCreateOrgOpen] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [newOrgDescription, setNewOrgDescription] = useState("");
+  const [newOrgLogoUrl, setNewOrgLogoUrl] = useState("");
+  const [selectedVendorForOrg, setSelectedVendorForOrg] = useState<
+    Record<string, string>
+  >({});
+
+  const handleCreateOrg = () => {
+    if (!newOrgName.trim()) return;
+    createOrgMutation.mutate(
+      {
+        name: newOrgName.trim(),
+        description: newOrgDescription.trim(),
+        logoUrl: newOrgLogoUrl.trim(),
+        adminPrincipalText: identity?.getPrincipal().toString() ?? "",
+      },
+      {
+        onSuccess: () => {
+          setNewOrgName("");
+          setNewOrgDescription("");
+          setNewOrgLogoUrl("");
+          setCreateOrgOpen(false);
+        },
+      },
+    );
+  };
+
+  const handleDeleteOrg = (orgId: string) => {
+    if (!confirm("Are you sure you want to delete this organization?")) return;
+    deleteOrgMutation.mutate(orgId);
+  };
+
+  const handleAssignVendor = (orgId: string) => {
+    const vendorId = selectedVendorForOrg[orgId];
+    if (!vendorId) return;
+    assignVendorMutation.mutate(
+      { orgId, vendorId },
+      {
+        onSuccess: () => {
+          setSelectedVendorForOrg((prev) => ({ ...prev, [orgId]: "" }));
+        },
+      },
+    );
+  };
+
+  const handleRemoveVendorFromOrg = (orgId: string, vendorId: string) => {
+    removeVendorMutation.mutate({ orgId, vendorId });
+  };
 
   const canManageAdmins = isAuthorized && !isAdminLoading && !isAppOwnerLoading;
   const noAdminsExist = hasAdmin === false;
@@ -714,6 +858,374 @@ export default function AdminPlaceholderPage() {
               <p className="text-sm text-muted-foreground">
                 No vendors registered yet.
               </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Organizations Management Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <CardTitle>Organizations</CardTitle>
+                <Badge variant="secondary">
+                  {totalOrgs} {totalOrgs === 1 ? "org" : "orgs"}
+                </Badge>
+                <Badge variant="outline" className="gap-1">
+                  <Users className="h-3 w-3" />
+                  {totalVendorsAssigned} assigned
+                </Badge>
+              </div>
+              <Dialog open={createOrgOpen} onOpenChange={setCreateOrgOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    data-ocid="admin.create_org.button"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Organization
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Organization</DialogTitle>
+                    <DialogDescription>
+                      Create a new organization to group vendors together.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="orgName">
+                        Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        data-ocid="admin.create_org.name.input"
+                        id="orgName"
+                        placeholder="Organization name"
+                        value={newOrgName}
+                        onChange={(e) => setNewOrgName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="orgDescription">Description</Label>
+                      <Textarea
+                        data-ocid="admin.create_org.description.textarea"
+                        id="orgDescription"
+                        placeholder="Describe this organization..."
+                        value={newOrgDescription}
+                        onChange={(e) => setNewOrgDescription(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="orgLogoUrl">Logo URL</Label>
+                      <Input
+                        data-ocid="admin.create_org.logoUrl.input"
+                        id="orgLogoUrl"
+                        type="url"
+                        placeholder="https://example.com/logo.png"
+                        value={newOrgLogoUrl}
+                        onChange={(e) => setNewOrgLogoUrl(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCreateOrgOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      data-ocid="admin.create_org.submit_button"
+                      onClick={handleCreateOrg}
+                      disabled={
+                        !newOrgName.trim() || createOrgMutation.isPending
+                      }
+                    >
+                      {createOrgMutation.isPending
+                        ? "Creating..."
+                        : "Create Organization"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <CardDescription>
+              Group vendors into organizations for better discoverability
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {organizations.length === 0 ? (
+              <div
+                data-ocid="admin.orgs.empty_state"
+                className="flex flex-col items-center justify-center py-8 text-center"
+              >
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-3">
+                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No organizations yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Create organizations to group vendors together.
+                </p>
+              </div>
+            ) : (
+              <div data-ocid="admin.orgs.list" className="space-y-4">
+                {organizations.map((org, index) => (
+                  <div
+                    key={org.id}
+                    data-ocid={`admin.orgs.item.${index + 1}`}
+                    className="border rounded-lg p-4 space-y-4"
+                  >
+                    {/* Org header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        {org.logoUrl ? (
+                          <img
+                            src={org.logoUrl}
+                            alt={org.name}
+                            className="h-10 w-10 rounded-md object-cover border border-border flex-shrink-0"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = "";
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <Building2 className="h-5 w-5 text-primary" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{org.name}</p>
+                          {org.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1">
+                              {org.description}
+                            </p>
+                          )}
+                          <Badge
+                            variant="secondary"
+                            className="text-xs mt-1 gap-1"
+                          >
+                            <Users className="h-3 w-3" />
+                            {org.vendorIds.length}{" "}
+                            {org.vendorIds.length === 1 ? "vendor" : "vendors"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <Button
+                        data-ocid="admin.orgs.delete.button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive gap-1 flex-shrink-0"
+                        onClick={() => handleDeleteOrg(org.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+
+                    {/* Assigned vendors */}
+                    {org.vendorIds.length > 0 && (
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Assigned Vendors
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {org.vendorIds.map((vid) => {
+                            const matchedVendor = vendors?.find(
+                              (v) => v.id.toString() === vid,
+                            );
+                            return (
+                              <Badge
+                                key={vid}
+                                variant="outline"
+                                className="gap-1 pr-1"
+                              >
+                                <Store className="h-3 w-3" />
+                                {matchedVendor?.companyName ?? `Vendor #${vid}`}
+                                <button
+                                  type="button"
+                                  className="ml-1 hover:text-destructive transition-colors"
+                                  onClick={() =>
+                                    handleRemoveVendorFromOrg(org.id, vid)
+                                  }
+                                  aria-label={`Remove vendor ${vid}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Assign vendor */}
+                    {vendors && vendors.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={selectedVendorForOrg[org.id] ?? ""}
+                          onValueChange={(value) =>
+                            setSelectedVendorForOrg((prev) => ({
+                              ...prev,
+                              [org.id]: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger
+                            data-ocid="admin.orgs.assign_vendor.select"
+                            className="flex-1 text-sm h-9"
+                          >
+                            <SelectValue placeholder="Select a vendor to assign..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vendors
+                              .filter(
+                                (v) => !org.vendorIds.includes(v.id.toString()),
+                              )
+                              .map((v) => (
+                                <SelectItem
+                                  key={v.id.toString()}
+                                  value={v.id.toString()}
+                                >
+                                  {v.companyName}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          data-ocid="admin.orgs.assign_vendor.button"
+                          size="sm"
+                          disabled={
+                            !selectedVendorForOrg[org.id] ||
+                            assignVendorMutation.isPending
+                          }
+                          onClick={() => handleAssignVendor(org.id)}
+                          className="gap-1 flex-shrink-0"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Assign
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Orders Management Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" />
+              <CardTitle>Orders Management</CardTitle>
+              {totalOrderCount !== undefined && (
+                <Badge variant="secondary">
+                  {totalOrderCount.toString()} total
+                </Badge>
+              )}
+            </div>
+            <CardDescription>
+              View all marketplace orders (Admin or App Owner only)
+            </CardDescription>
+          </CardHeader>
+          <CardContent data-ocid="admin.orders.panel">
+            {ordersLoading ? (
+              <div data-ocid="admin.orders.loading_state" className="space-y-2">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+            ) : ordersError ? (
+              <Alert variant="destructive" data-ocid="admin.orders.error_state">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {ordersError instanceof Error
+                    ? ordersError.message
+                    : "Failed to load orders. Admin or App Owner privileges required."}
+                </AlertDescription>
+              </Alert>
+            ) : !isAuthorized ? (
+              <Alert data-ocid="admin.orders.error_state">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Admin or App Owner privileges required to view all orders.
+                </AlertDescription>
+              </Alert>
+            ) : allOrders && allOrders.length > 0 ? (
+              <div className="space-y-3">
+                {allOrders
+                  .slice()
+                  .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
+                  .map((order, index) => {
+                    const statusConfig = getOrderStatusConfig(
+                      order.status as string,
+                    );
+                    const buyerStr = order.buyer.toString();
+                    const shortBuyer = `${buyerStr.slice(0, 8)}...${buyerStr.slice(-6)}`;
+                    return (
+                      <div
+                        key={order.id.toString()}
+                        data-ocid={`admin.orders.item.${index + 1}`}
+                        className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg"
+                      >
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-mono text-muted-foreground">
+                              #{order.id.toString()}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={statusConfig.className}
+                            >
+                              {statusConfig.label}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-mono truncate">
+                            Buyer: {shortBuyer}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(
+                              Number(order.createdAt) / 1_000_000,
+                            ).toLocaleDateString()}
+                            {" · "}
+                            {order.items.length} item
+                            {order.items.length !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-semibold text-primary">
+                            {formatAdminPrice(
+                              order.totalAmount,
+                              order.currency,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div
+                data-ocid="admin.orders.empty_state"
+                className="flex flex-col items-center justify-center py-8 text-center"
+              >
+                <div className="flex items-center justify-center h-12 w-12 rounded-full bg-muted mb-3">
+                  <ShoppingBag className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  No orders yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Orders will appear here once buyers complete purchases.
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
