@@ -8,9 +8,9 @@ import Time "mo:core/Time";
 import Auth "authorization/access-control";
 import Map "mo:core/Map";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
-
-
+(with migration = Migration.run)
 actor {
   type Env = {
     #dev;
@@ -18,7 +18,7 @@ actor {
   };
 
   public type Version = Text;
-  var version : Version = "2.2.0";
+  var version : Version = "2.2.0 (updated)";
   var environment : Env = #prod;
 
   public type BackendMetadata = {
@@ -40,6 +40,7 @@ actor {
   public type ProductId = Nat;
   public type VendorId = Nat;
   type Timestamp = Int;
+  public type OrganizationId = Nat;
 
   type CartItem = {
     productId : ProductId;
@@ -75,6 +76,16 @@ actor {
     updatedAt : Timestamp;
   };
 
+  public type Organization = {
+    id : OrganizationId;
+    name : Text;
+    description : Text;
+    logoUrl : Text;
+    adminPrincipal : Principal;
+    createdAt : Timestamp;
+    vendorIds : [VendorId];
+  };
+
   var accessControlState = Auth.initState();
   var appOwner : ?Principal = null;
   include MixinAuthorization(accessControlState);
@@ -91,6 +102,9 @@ actor {
   stable var stableCarts : [(Principal, [CartItem])] = [];
   stable var stableLastOrderId : Nat = 0;
 
+  stable var stableOrganizations : [(Nat, Organization)] = [];
+  stable var stableLastOrgId : Nat = 0;
+
   var userProfiles = Map.fromIter<Principal, UserProfile>(stableUserProfiles.vals());
   var vendors = Map.fromIter<VendorId, VendorProfile>(stableVendors.vals());
   var products = Map.fromIter<Nat, Product>(stableProducts.vals());
@@ -100,6 +114,9 @@ actor {
   var carts = Map.fromIter<Principal, [CartItem]>(stableCarts.vals());
   var orders = Map.fromIter<Nat, Order>(stableOrders.vals());
   var lastOrderId = stableLastOrderId;
+
+  var organizations = Map.fromIter<Nat, Organization>(stableOrganizations.vals());
+  var lastOrgId = stableLastOrgId;
 
   public type Product = {
     id : ProductId;
@@ -163,6 +180,8 @@ actor {
     stableCarts := carts.entries().toArray();
     stableOrders := orders.entries().toArray();
     stableLastOrderId := lastOrderId;
+    stableOrganizations := organizations.entries().toArray();
+    stableLastOrgId := lastOrgId;
   };
 
   system func postupgrade() {};
@@ -448,7 +467,7 @@ actor {
           id = newVendorId;
           user = caller;
           companyName;
-          logoUrl;
+          logoUrl = logoUrl;
           isVerified = false;
         };
         vendors.add(newVendorId, newVendor);
@@ -459,7 +478,7 @@ actor {
         let updatedVendor : VendorProfile = {
           id = existingVendor.id;
           user = caller;
-          companyName;
+          companyName = companyName;
           logoUrl;
           isVerified = existingVendor.isVerified;
         };
@@ -753,5 +772,154 @@ actor {
   // Get total order count.
   public query ({ caller }) func getTotalOrderCount() : async Nat {
     orders.size();
+  };
+
+  public shared ({ caller }) func updateOrderStatus(orderId : OrderId, newStatus : OrderStatus) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admins or owner can update order status");
+    };
+    switch (orders.get(orderId)) {
+      case (null) { Runtime.trap("Order not found") };
+      case (?order) {
+        let updatedOrder : Order = {
+          order with
+          status = newStatus;
+          updatedAt = Time.now();
+        };
+        orders.add(orderId, updatedOrder);
+      };
+    };
+  };
+
+  // ========= NEW =========
+
+  public query ({ caller }) func getVendorOrders() : async [Order] {
+    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+      Runtime.trap("Unauthorized: Only authenticated users can view their orders");
+    };
+
+    // 1. Find product IDs owned by caller
+    let ownedProductIds = products.values().filter(func(product) { product.ownerPrincipal == caller }).toArray();
+
+    // 2. If no products owned, return empty array
+    if (ownedProductIds.isEmpty()) {
+      return [];
+    };
+
+    // 3. Filter orders that contain at least one of the owned products
+    let matchingOrders = orders.values().toArray().filter(
+      func(order) {
+        order.items.any(
+          func(item) {
+            ownedProductIds.any(
+              func(product) { product.id == item.productId }
+            );
+          }
+        );
+      }
+    );
+
+    matchingOrders;
+  };
+
+  // === Organization Management ===
+
+  public shared ({ caller }) func createOrganization(
+    name : Text,
+    description : Text,
+    logoUrl : Text,
+  ) : async OrganizationId {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admin/appowner can create organizations");
+    };
+
+    let orgId = lastOrgId;
+    let newOrg : Organization = {
+      id = orgId;
+      name;
+      description;
+      logoUrl;
+      adminPrincipal = caller;
+      createdAt = Time.now();
+      vendorIds = [];
+    };
+
+    organizations.add(orgId, newOrg);
+    lastOrgId += 1;
+    orgId;
+  };
+
+  public query ({ caller }) func getOrganization(id : OrganizationId) : async ?Organization {
+    organizations.get(id);
+  };
+
+  public query ({ caller }) func getAllOrganizations() : async [Organization] {
+    organizations.values().toArray();
+  };
+
+  public shared ({ caller }) func deleteOrganization(id : OrganizationId) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admin/appowner can delete organizations");
+    };
+
+    switch (organizations.get(id)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?_) {
+        organizations.remove(id);
+      };
+    };
+  };
+
+  public shared ({ caller }) func assignVendorToOrg(orgId : OrganizationId, vendorId : VendorId) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admin/appowner can assign vendors to organizations");
+    };
+
+    // Find and remove vendorId from all organizations
+    for ((id, org) in organizations.entries()) {
+      if (org.vendorIds.find(func(id) { id == vendorId }) != null) {
+        let updatedVendorIds = org.vendorIds.filter(func(id) { id != vendorId });
+        let newOrg : Organization = {
+          org with vendorIds = updatedVendorIds
+        };
+        organizations.add(id, newOrg);
+      };
+    };
+
+    // Add vendorId to the specified organization
+    switch (organizations.get(orgId)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?org) {
+        var vendorIdsVar : [VendorId] = org.vendorIds;
+        let newOrg : Organization = {
+          org with vendorIds = vendorIdsVar.concat([vendorId])
+        };
+        organizations.add(orgId, newOrg);
+      };
+    };
+  };
+
+  public shared ({ caller }) func removeVendorFromOrg(orgId : OrganizationId, vendorId : VendorId) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admin/appowner can remove vendors from organizations");
+    };
+
+    switch (organizations.get(orgId)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?org) {
+        let updatedVendorIds = org.vendorIds.filter(func(id) { id != vendorId });
+        let newOrg : Organization = {
+          org with vendorIds = updatedVendorIds
+        };
+        organizations.add(orgId, newOrg);
+      };
+    };
+  };
+
+  public query ({ caller }) func getVendorOrganization(vendorId : VendorId) : async ?Organization {
+    switch (organizations.values().find(func(org) { org.vendorIds.any(func(id) { id == vendorId }) })) {
+      case (null) { null };
+      case (?org) { ?org };
+    };
   };
 };

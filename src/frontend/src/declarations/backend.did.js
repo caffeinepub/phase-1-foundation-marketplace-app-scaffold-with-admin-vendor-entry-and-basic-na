@@ -24,6 +24,7 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const OrganizationId = IDL.Nat;
 export const OrderId = IDL.Nat;
 export const OrderStatus = IDL.Variant({
   'shipped' : IDL.Null,
@@ -50,6 +51,15 @@ export const Order = IDL.Record({
   'currency' : IDL.Text,
   'buyer' : IDL.Principal,
   'items' : IDL.Vec(OrderItem),
+});
+export const Organization = IDL.Record({
+  'id' : OrganizationId,
+  'adminPrincipal' : IDL.Principal,
+  'name' : IDL.Text,
+  'createdAt' : Timestamp,
+  'description' : IDL.Text,
+  'logoUrl' : IDL.Text,
+  'vendorIds' : IDL.Vec(VendorId),
 });
 export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 export const UserProfileWithPrincipal = IDL.Record({
@@ -94,18 +104,26 @@ export const idlService = IDL.Service({
   'addToCart' : IDL.Func([ProductId, IDL.Nat], [], []),
   'addVendorProfile' : IDL.Func([VendorProfile], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'assignVendorToOrg' : IDL.Func([OrganizationId, VendorId], [], []),
   'bootstrapAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
   'bootstrapFirstAdmin' : IDL.Func([], [], []),
   'claimAppOwner' : IDL.Func([], [], []),
   'clearCart' : IDL.Func([], [], []),
+  'createOrganization' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text],
+      [OrganizationId],
+      [],
+    ),
   'createProduct' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
       [ProductId],
       [],
     ),
   'createVendorProfile' : IDL.Func([IDL.Text, IDL.Text], [VendorId], []),
+  'deleteOrganization' : IDL.Func([OrganizationId], [], []),
   'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
   'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+  'getAllOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
   'getAllUserProfiles' : IDL.Func(
       [],
       [IDL.Vec(UserProfileWithPrincipal)],
@@ -121,6 +139,11 @@ export const idlService = IDL.Service({
   'getCallerVendorProfile' : IDL.Func([], [IDL.Opt(VendorProfile)], ['query']),
   'getCart' : IDL.Func([], [IDL.Vec(CartItem)], ['query']),
   'getOrderById' : IDL.Func([OrderId], [IDL.Opt(Order)], ['query']),
+  'getOrganization' : IDL.Func(
+      [OrganizationId],
+      [IDL.Opt(Organization)],
+      ['query'],
+    ),
   'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
   'getPublishedProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getTotalOrderCount' : IDL.Func([], [IDL.Nat], ['query']),
@@ -130,6 +153,12 @@ export const idlService = IDL.Service({
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
       [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'getVendorOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+  'getVendorOrganization' : IDL.Func(
+      [VendorId],
+      [IDL.Opt(Organization)],
       ['query'],
     ),
   'getVendorProductsByPrincipal' : IDL.Func(
@@ -172,8 +201,10 @@ export const idlService = IDL.Service({
   'placeOrder' : IDL.Func([], [OrderId], []),
   'removeAdmin' : IDL.Func([IDL.Principal], [], []),
   'removeFromCart' : IDL.Func([ProductId], [], []),
+  'removeVendorFromOrg' : IDL.Func([OrganizationId, VendorId], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
+  'updateOrderStatus' : IDL.Func([OrderId, OrderStatus], [], []),
   'updateProduct' : IDL.Func(
       [
         ProductId,
@@ -213,6 +244,7 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const OrganizationId = IDL.Nat;
   const OrderId = IDL.Nat;
   const OrderStatus = IDL.Variant({
     'shipped' : IDL.Null,
@@ -239,6 +271,15 @@ export const idlFactory = ({ IDL }) => {
     'currency' : IDL.Text,
     'buyer' : IDL.Principal,
     'items' : IDL.Vec(OrderItem),
+  });
+  const Organization = IDL.Record({
+    'id' : OrganizationId,
+    'adminPrincipal' : IDL.Principal,
+    'name' : IDL.Text,
+    'createdAt' : Timestamp,
+    'description' : IDL.Text,
+    'logoUrl' : IDL.Text,
+    'vendorIds' : IDL.Vec(VendorId),
   });
   const UserProfile = IDL.Record({ 'name' : IDL.Text });
   const UserProfileWithPrincipal = IDL.Record({
@@ -283,18 +324,26 @@ export const idlFactory = ({ IDL }) => {
     'addToCart' : IDL.Func([ProductId, IDL.Nat], [], []),
     'addVendorProfile' : IDL.Func([VendorProfile], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'assignVendorToOrg' : IDL.Func([OrganizationId, VendorId], [], []),
     'bootstrapAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
     'bootstrapFirstAdmin' : IDL.Func([], [], []),
     'claimAppOwner' : IDL.Func([], [], []),
     'clearCart' : IDL.Func([], [], []),
+    'createOrganization' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text],
+        [OrganizationId],
+        [],
+      ),
     'createProduct' : IDL.Func(
         [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Bool],
         [ProductId],
         [],
       ),
     'createVendorProfile' : IDL.Func([IDL.Text, IDL.Text], [VendorId], []),
+    'deleteOrganization' : IDL.Func([OrganizationId], [], []),
     'getAdmins' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'getAllOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+    'getAllOrganizations' : IDL.Func([], [IDL.Vec(Organization)], ['query']),
     'getAllUserProfiles' : IDL.Func(
         [],
         [IDL.Vec(UserProfileWithPrincipal)],
@@ -314,6 +363,11 @@ export const idlFactory = ({ IDL }) => {
       ),
     'getCart' : IDL.Func([], [IDL.Vec(CartItem)], ['query']),
     'getOrderById' : IDL.Func([OrderId], [IDL.Opt(Order)], ['query']),
+    'getOrganization' : IDL.Func(
+        [OrganizationId],
+        [IDL.Opt(Organization)],
+        ['query'],
+      ),
     'getProductById' : IDL.Func([ProductId], [IDL.Opt(Product)], ['query']),
     'getPublishedProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getTotalOrderCount' : IDL.Func([], [IDL.Nat], ['query']),
@@ -323,6 +377,12 @@ export const idlFactory = ({ IDL }) => {
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
         [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'getVendorOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
+    'getVendorOrganization' : IDL.Func(
+        [VendorId],
+        [IDL.Opt(Organization)],
         ['query'],
       ),
     'getVendorProductsByPrincipal' : IDL.Func(
@@ -365,8 +425,10 @@ export const idlFactory = ({ IDL }) => {
     'placeOrder' : IDL.Func([], [OrderId], []),
     'removeAdmin' : IDL.Func([IDL.Principal], [], []),
     'removeFromCart' : IDL.Func([ProductId], [], []),
+    'removeVendorFromOrg' : IDL.Func([OrganizationId, VendorId], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
+    'updateOrderStatus' : IDL.Func([OrderId, OrderStatus], [], []),
     'updateProduct' : IDL.Func(
         [
           ProductId,

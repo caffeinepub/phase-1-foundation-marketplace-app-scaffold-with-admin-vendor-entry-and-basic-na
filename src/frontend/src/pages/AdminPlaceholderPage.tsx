@@ -50,7 +50,8 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
-import type { OrderStatus, VendorId } from "../backend";
+import { toast } from "sonner";
+import { OrderStatus, type VendorId } from "../backend";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAddAdmin,
@@ -67,6 +68,7 @@ import {
   useRemoveAdmin,
   useTotalOrderCount,
   useTotalUserCount,
+  useUpdateOrderStatus,
   useUpgradeSummary,
   useVerifyVendor,
 } from "../hooks/useMarketplaceQueries";
@@ -174,6 +176,37 @@ export default function AdminPlaceholderPage() {
   const removeAdminMutation = useRemoveAdmin();
   const bootstrapFirstAdminMutation = useBootstrapFirstAdmin();
   const claimAppOwnerMutation = useClaimAppOwner();
+  const updateOrderStatusMutation = useUpdateOrderStatus();
+
+  // Track selected status per order (keyed by order id string)
+  const [orderStatusSelections, setOrderStatusSelections] = useState<
+    Record<string, string>
+  >({});
+  const [orderStatusErrors, setOrderStatusErrors] = useState<
+    Record<string, string>
+  >({});
+
+  const handleUpdateOrderStatus = async (
+    orderId: bigint,
+    newStatus: OrderStatus,
+  ) => {
+    const key = orderId.toString();
+    setOrderStatusErrors((prev) => ({ ...prev, [key]: "" }));
+    try {
+      await updateOrderStatusMutation.mutateAsync({ orderId, newStatus });
+      toast.success(`Order #${key} status updated to ${newStatus}`);
+      // Clear local selection since query will refresh with new status
+      setOrderStatusSelections((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to update order status";
+      setOrderStatusErrors((prev) => ({ ...prev, [key]: msg }));
+    }
+  };
 
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -1164,49 +1197,124 @@ export default function AdminPlaceholderPage() {
                   .slice()
                   .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
                   .map((order, index) => {
-                    const statusConfig = getOrderStatusConfig(
-                      order.status as string,
-                    );
+                    const orderKey = order.id.toString();
+                    const currentStatus = order.status as string;
+                    const statusConfig = getOrderStatusConfig(currentStatus);
                     const buyerStr = order.buyer.toString();
                     const shortBuyer = `${buyerStr.slice(0, 8)}...${buyerStr.slice(-6)}`;
+                    const selectedStatus =
+                      orderStatusSelections[orderKey] ?? currentStatus;
+                    const hasChanged = selectedStatus !== currentStatus;
+                    const rowError = orderStatusErrors[orderKey];
+                    const isUpdating =
+                      updateOrderStatusMutation.isPending &&
+                      updateOrderStatusMutation.variables?.orderId.toString() ===
+                        orderKey;
+
                     return (
                       <div
-                        key={order.id.toString()}
+                        key={orderKey}
                         data-ocid={`admin.orders.item.${index + 1}`}
-                        className="flex flex-wrap items-center justify-between gap-3 p-4 border rounded-lg"
+                        className="p-4 border rounded-lg space-y-3"
                       >
-                        <div className="space-y-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-mono text-muted-foreground">
-                              #{order.id.toString()}
-                            </span>
-                            <Badge
-                              variant="outline"
-                              className={statusConfig.className}
-                            >
-                              {statusConfig.label}
-                            </Badge>
+                        {/* Top row: order info + price */}
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-mono text-muted-foreground">
+                                #{orderKey}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className={statusConfig.className}
+                              >
+                                {statusConfig.label}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground font-mono truncate">
+                              Buyer: {shortBuyer}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(
+                                Number(order.createdAt) / 1_000_000,
+                              ).toLocaleDateString()}
+                              {" · "}
+                              {order.items.length} item
+                              {order.items.length !== 1 ? "s" : ""}
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground font-mono truncate">
-                            Buyer: {shortBuyer}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(
-                              Number(order.createdAt) / 1_000_000,
-                            ).toLocaleDateString()}
-                            {" · "}
-                            {order.items.length} item
-                            {order.items.length !== 1 ? "s" : ""}
-                          </p>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-semibold text-primary">
+                              {formatAdminPrice(
+                                order.totalAmount,
+                                order.currency,
+                              )}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="font-semibold text-primary">
-                            {formatAdminPrice(
-                              order.totalAmount,
-                              order.currency,
-                            )}
-                          </p>
+
+                        {/* Status update controls */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Select
+                            value={selectedStatus}
+                            onValueChange={(value) =>
+                              setOrderStatusSelections((prev) => ({
+                                ...prev,
+                                [orderKey]: value,
+                              }))
+                            }
+                            disabled={isUpdating}
+                          >
+                            <SelectTrigger
+                              data-ocid={`admin.orders.status_select.${index + 1}`}
+                              className="h-8 w-[140px] text-xs"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={OrderStatus.pending}>
+                                Pending
+                              </SelectItem>
+                              <SelectItem value={OrderStatus.confirmed}>
+                                Confirmed
+                              </SelectItem>
+                              <SelectItem value={OrderStatus.shipped}>
+                                Shipped
+                              </SelectItem>
+                              <SelectItem value={OrderStatus.delivered}>
+                                Delivered
+                              </SelectItem>
+                              <SelectItem value={OrderStatus.cancelled}>
+                                Cancelled
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            data-ocid={`admin.orders.update_status.button.${index + 1}`}
+                            size="sm"
+                            variant={hasChanged ? "default" : "outline"}
+                            disabled={!hasChanged || isUpdating}
+                            onClick={() =>
+                              handleUpdateOrderStatus(
+                                order.id,
+                                selectedStatus as OrderStatus,
+                              )
+                            }
+                            className="h-8 text-xs px-3"
+                          >
+                            {isUpdating ? "Updating…" : "Update"}
+                          </Button>
                         </div>
+
+                        {/* Inline error */}
+                        {rowError && (
+                          <p
+                            data-ocid="admin.orders.error_state"
+                            className="text-xs text-destructive"
+                          >
+                            {rowError}
+                          </p>
+                        )}
                       </div>
                     );
                   })}

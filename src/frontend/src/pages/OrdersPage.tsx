@@ -92,9 +92,10 @@ function getStatusConfig(status: OrderStatus): {
 interface OrderCardProps {
   order: Order;
   index: number;
+  displayIndex: number;
 }
 
-function OrderCard({ order, index }: OrderCardProps) {
+function OrderCard({ order, index, displayIndex }: OrderCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const statusConfig = getStatusConfig(order.status as OrderStatus);
 
@@ -126,6 +127,14 @@ function OrderCard({ order, index }: OrderCardProps) {
               <p className="text-xs text-muted-foreground">
                 {order.items.length} item{order.items.length !== 1 ? "s" : ""}
               </p>
+              <Link
+                to="/orders/$orderId"
+                params={{ orderId: order.id.toString() }}
+                className="text-sm text-primary hover:underline block"
+                data-ocid={`orders.item.link.${displayIndex}`}
+              >
+                View Details
+              </Link>
             </div>
           </div>
         </CardHeader>
@@ -279,6 +288,7 @@ function OrdersPageContent() {
                   key={order.id.toString()}
                   order={order}
                   index={index + 1}
+                  displayIndex={index + 1}
                 />
               ))}
           </div>

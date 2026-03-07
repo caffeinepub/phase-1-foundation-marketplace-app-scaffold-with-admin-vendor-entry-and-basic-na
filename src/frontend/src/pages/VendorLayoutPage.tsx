@@ -1,6 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { Package, Store } from "lucide-react";
+import { Package, ShoppingBag, Store } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface VendorLayoutPageProps {
@@ -11,12 +11,15 @@ export default function VendorLayoutPage({ children }: VendorLayoutPageProps) {
   const matchRoute = useMatchRoute();
   const isProfileRoute = matchRoute({ to: "/vendor/profile" });
   const isProductsRoute = matchRoute({ to: "/vendor/products" });
+  const isOrdersRoute = matchRoute({ to: "/vendor/orders" });
 
   const currentTab = isProfileRoute
     ? "profile"
     : isProductsRoute
       ? "products"
-      : "profile";
+      : isOrdersRoute
+        ? "orders"
+        : "profile";
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -34,17 +37,35 @@ export default function VendorLayoutPage({ children }: VendorLayoutPageProps) {
         </div>
 
         <Tabs value={currentTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="profile" asChild>
-              <Link to="/vendor/profile" className="cursor-pointer">
+              <Link
+                to="/vendor/profile"
+                className="cursor-pointer"
+                data-ocid="vendor.profile.tab"
+              >
                 <Store className="h-4 w-4 mr-2" />
                 Profile
               </Link>
             </TabsTrigger>
             <TabsTrigger value="products" asChild>
-              <Link to="/vendor/products" className="cursor-pointer">
+              <Link
+                to="/vendor/products"
+                className="cursor-pointer"
+                data-ocid="vendor.products.tab"
+              >
                 <Package className="h-4 w-4 mr-2" />
                 Products
+              </Link>
+            </TabsTrigger>
+            <TabsTrigger value="orders" asChild>
+              <Link
+                to="/vendor/orders"
+                className="cursor-pointer"
+                data-ocid="vendor.orders.tab"
+              >
+                <ShoppingBag className="h-4 w-4 mr-2" />
+                Orders
               </Link>
             </TabsTrigger>
           </TabsList>

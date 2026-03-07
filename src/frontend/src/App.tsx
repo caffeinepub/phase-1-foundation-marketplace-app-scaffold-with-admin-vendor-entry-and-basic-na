@@ -13,6 +13,7 @@ import AppLayout from "./components/layout/AppLayout";
 import AdminPlaceholderPage from "./pages/AdminPlaceholderPage";
 import CartPage from "./pages/CartPage";
 import LandingPage from "./pages/LandingPage";
+import OrderDetailPage from "./pages/OrderDetailPage";
 import OrdersPage from "./pages/OrdersPage";
 import OrganizationDetailPage from "./pages/OrganizationDetailPage";
 import OrganizationsPage from "./pages/OrganizationsPage";
@@ -20,6 +21,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import PublicProductsPage from "./pages/PublicProductsPage";
 import RoleSelectPage from "./pages/RoleSelectPage";
 import VendorLayoutPage from "./pages/VendorLayoutPage";
+import VendorOrdersPage from "./pages/VendorOrdersPage";
 import VendorProductsPage from "./pages/VendorProductsPage";
 import VendorProfilePage from "./pages/VendorProfilePage";
 import VendorStorefrontPage from "./pages/VendorStorefrontPage";
@@ -87,6 +89,12 @@ const ordersRoute = createRoute({
   component: OrdersPage,
 });
 
+const orderDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders/$orderId",
+  component: OrderDetailPage,
+});
+
 const roleSelectRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/select-role",
@@ -147,6 +155,16 @@ const vendorProductsRoute = createRoute({
   ),
 });
 
+const vendorOrdersRoute = createRoute({
+  getParentRoute: () => vendorRoute,
+  path: "/orders",
+  component: () => (
+    <VendorLayoutPage>
+      <VendorOrdersPage />
+    </VendorLayoutPage>
+  ),
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   publicProductsRoute,
@@ -157,12 +175,14 @@ const routeTree = rootRoute.addChildren([
   organizationDetailRoute,
   cartRoute,
   ordersRoute,
+  orderDetailRoute,
   roleSelectRoute,
   adminRoute,
   vendorRoute.addChildren([
     vendorIndexRoute,
     vendorProfileRoute,
     vendorProductsRoute,
+    vendorOrdersRoute,
   ]),
 ]);
 

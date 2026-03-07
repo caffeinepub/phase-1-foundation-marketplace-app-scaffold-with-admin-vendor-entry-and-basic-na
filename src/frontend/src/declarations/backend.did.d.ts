@@ -39,6 +39,16 @@ export type OrderStatus = { 'shipped' : null } |
   { 'pending' : null } |
   { 'delivered' : null } |
   { 'confirmed' : null };
+export interface Organization {
+  'id' : OrganizationId,
+  'adminPrincipal' : Principal,
+  'name' : string,
+  'createdAt' : Timestamp,
+  'description' : string,
+  'logoUrl' : string,
+  'vendorIds' : Array<VendorId>,
+}
+export type OrganizationId = bigint;
 export interface Product {
   'id' : ProductId,
   'title' : string,
@@ -86,17 +96,21 @@ export interface _SERVICE {
   'addToCart' : ActorMethod<[ProductId, bigint], undefined>,
   'addVendorProfile' : ActorMethod<[VendorProfile], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'assignVendorToOrg' : ActorMethod<[OrganizationId, VendorId], undefined>,
   'bootstrapAdmins' : ActorMethod<[Array<Principal>], undefined>,
   'bootstrapFirstAdmin' : ActorMethod<[], undefined>,
   'claimAppOwner' : ActorMethod<[], undefined>,
   'clearCart' : ActorMethod<[], undefined>,
+  'createOrganization' : ActorMethod<[string, string, string], OrganizationId>,
   'createProduct' : ActorMethod<
     [string, string, bigint, string, string, string, boolean],
     ProductId
   >,
   'createVendorProfile' : ActorMethod<[string, string], VendorId>,
+  'deleteOrganization' : ActorMethod<[OrganizationId], undefined>,
   'getAdmins' : ActorMethod<[], Array<Principal>>,
   'getAllOrders' : ActorMethod<[], Array<Order>>,
+  'getAllOrganizations' : ActorMethod<[], Array<Organization>>,
   'getAllUserProfiles' : ActorMethod<[], Array<UserProfileWithPrincipal>>,
   'getAllVendorProfiles' : ActorMethod<[], Array<VendorProfile>>,
   'getAppOwner' : ActorMethod<[], [] | [Principal]>,
@@ -108,6 +122,7 @@ export interface _SERVICE {
   'getCallerVendorProfile' : ActorMethod<[], [] | [VendorProfile]>,
   'getCart' : ActorMethod<[], Array<CartItem>>,
   'getOrderById' : ActorMethod<[OrderId], [] | [Order]>,
+  'getOrganization' : ActorMethod<[OrganizationId], [] | [Organization]>,
   'getProductById' : ActorMethod<[ProductId], [] | [Product]>,
   'getPublishedProducts' : ActorMethod<[], Array<Product>>,
   'getTotalOrderCount' : ActorMethod<[], bigint>,
@@ -115,6 +130,8 @@ export interface _SERVICE {
   'getTotalVendorCount' : ActorMethod<[], bigint>,
   'getUpgradeSummary' : ActorMethod<[], UpgradeSummary>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'getVendorOrders' : ActorMethod<[], Array<Order>>,
+  'getVendorOrganization' : ActorMethod<[VendorId], [] | [Organization]>,
   'getVendorProductsByPrincipal' : ActorMethod<[Principal], Array<Product>>,
   'getVendorProductsByVendorId' : ActorMethod<[VendorId], Array<Product>>,
   'getVendorProfile' : ActorMethod<[VendorId], [] | [VendorProfile]>,
@@ -131,8 +148,10 @@ export interface _SERVICE {
   'placeOrder' : ActorMethod<[], OrderId>,
   'removeAdmin' : ActorMethod<[Principal], undefined>,
   'removeFromCart' : ActorMethod<[ProductId], undefined>,
+  'removeVendorFromOrg' : ActorMethod<[OrganizationId, VendorId], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setAdmins' : ActorMethod<[Array<Principal>], undefined>,
+  'updateOrderStatus' : ActorMethod<[OrderId, OrderStatus], undefined>,
   'updateProduct' : ActorMethod<
     [ProductId, string, string, bigint, string, string, string, boolean],
     undefined

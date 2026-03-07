@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CartItem,
   Order,
+  OrderStatus,
   Product,
   ProductId,
   UpgradeSummary,
@@ -583,6 +584,23 @@ export function useCallerOrders() {
   });
 }
 
+// Orders: Get a single order by ID
+export function useOrderById(orderId: bigint | undefined) {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<Order | null>({
+    queryKey: ["order", orderId?.toString()],
+    queryFn: async () => {
+      if (!actor || orderId === undefined)
+        throw new Error("Actor or orderId not available");
+      return actor.getOrderById(orderId);
+    },
+    enabled: !!actor && !isFetching && !!identity && orderId !== undefined,
+    retry: false,
+  });
+}
+
 // Orders: Get all orders (admin only)
 export function useAllOrders(enabled = true) {
   const { actor, isFetching } = useActor();
@@ -610,5 +628,40 @@ export function useTotalOrderCount() {
     },
     enabled: !!actor && !isFetching,
     retry: false,
+  });
+}
+
+// Vendor: Get orders containing vendor's products
+export function useVendorOrders() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<Order[]>({
+    queryKey: ["vendorOrders"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getVendorOrders();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    retry: false,
+  });
+}
+
+// Orders: Update order status (admin only)
+export function useUpdateOrderStatus() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async ({
+      orderId,
+      newStatus,
+    }: { orderId: bigint; newStatus: OrderStatus }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.updateOrderStatus(orderId, newStatus);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allOrders"] });
+    },
   });
 }

@@ -89,9 +89,12 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface UserProfile {
+    name: string;
+}
 export type OrderId = bigint;
-export type Money = bigint;
 export type Timestamp = bigint;
+export type Money = bigint;
 export interface BackendMetadata {
     version: Version;
     environment: Env;
@@ -128,6 +131,7 @@ export interface UpgradeSummary {
 }
 export type ProductCurrency = string;
 export type Version = string;
+export type OrganizationId = bigint;
 export type ProductId = bigint;
 export interface CartItem {
     productId: ProductId;
@@ -140,7 +144,15 @@ export interface VendorProfile {
     isVerified: boolean;
     companyName: Name;
 }
-export type VendorId = bigint;
+export interface Organization {
+    id: OrganizationId;
+    adminPrincipal: Principal;
+    name: string;
+    createdAt: Timestamp;
+    description: string;
+    logoUrl: string;
+    vendorIds: Array<VendorId>;
+}
 export interface Product {
     id: ProductId;
     title: string;
@@ -154,9 +166,7 @@ export interface Product {
     category: string;
     price: Money;
 }
-export interface UserProfile {
-    name: string;
-}
+export type VendorId = bigint;
 export enum Env {
     dev = "dev",
     prod = "prod"
@@ -179,14 +189,18 @@ export interface backendInterface {
     addToCart(productId: ProductId, quantity: bigint): Promise<void>;
     addVendorProfile(profile: VendorProfile): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    assignVendorToOrg(orgId: OrganizationId, vendorId: VendorId): Promise<void>;
     bootstrapAdmins(principals: Array<Principal>): Promise<void>;
     bootstrapFirstAdmin(): Promise<void>;
     claimAppOwner(): Promise<void>;
     clearCart(): Promise<void>;
+    createOrganization(name: string, description: string, logoUrl: string): Promise<OrganizationId>;
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
+    deleteOrganization(id: OrganizationId): Promise<void>;
     getAdmins(): Promise<Array<Principal>>;
     getAllOrders(): Promise<Array<Order>>;
+    getAllOrganizations(): Promise<Array<Organization>>;
     getAllUserProfiles(): Promise<Array<UserProfileWithPrincipal>>;
     getAllVendorProfiles(): Promise<Array<VendorProfile>>;
     getAppOwner(): Promise<Principal | null>;
@@ -198,6 +212,7 @@ export interface backendInterface {
     getCallerVendorProfile(): Promise<VendorProfile | null>;
     getCart(): Promise<Array<CartItem>>;
     getOrderById(orderId: OrderId): Promise<Order | null>;
+    getOrganization(id: OrganizationId): Promise<Organization | null>;
     getProductById(productId: ProductId): Promise<Product | null>;
     getPublishedProducts(): Promise<Array<Product>>;
     getTotalOrderCount(): Promise<bigint>;
@@ -205,6 +220,8 @@ export interface backendInterface {
     getTotalVendorCount(): Promise<bigint>;
     getUpgradeSummary(): Promise<UpgradeSummary>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getVendorOrders(): Promise<Array<Order>>;
+    getVendorOrganization(vendorId: VendorId): Promise<Organization | null>;
     getVendorProductsByPrincipal(owner: Principal): Promise<Array<Product>>;
     getVendorProductsByVendorId(vendorId: VendorId): Promise<Array<Product>>;
     getVendorProfile(vendorId: VendorId): Promise<VendorProfile | null>;
@@ -221,15 +238,17 @@ export interface backendInterface {
     placeOrder(): Promise<OrderId>;
     removeAdmin(adminPrincipal: Principal): Promise<void>;
     removeFromCart(productId: ProductId): Promise<void>;
+    removeVendorFromOrg(orgId: OrganizationId, vendorId: VendorId): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setAdmins(admins: Array<Principal>): Promise<void>;
+    updateOrderStatus(orderId: OrderId, newStatus: OrderStatus): Promise<void>;
     updateProduct(productId: ProductId, title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<void>;
     updateVendorProfile(vendorId: VendorId, companyName: string, logoUrl: string): Promise<void>;
     upsertCallerVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
     verifyVendor(vendorId: VendorId): Promise<void>;
     whoami(): Promise<Principal>;
 }
-import type { BackendMetadata as _BackendMetadata, Env as _Env, Money as _Money, Order as _Order, OrderId as _OrderId, OrderItem as _OrderItem, OrderStatus as _OrderStatus, Product as _Product, Timestamp as _Timestamp, UserProfile as _UserProfile, UserRole as _UserRole, VendorProfile as _VendorProfile, Version as _Version } from "./declarations/backend.did.d.ts";
+import type { BackendMetadata as _BackendMetadata, Env as _Env, Money as _Money, Order as _Order, OrderId as _OrderId, OrderItem as _OrderItem, OrderStatus as _OrderStatus, Organization as _Organization, Product as _Product, Timestamp as _Timestamp, UserProfile as _UserProfile, UserRole as _UserRole, VendorProfile as _VendorProfile, Version as _Version } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -302,6 +321,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async assignVendorToOrg(arg0: OrganizationId, arg1: VendorId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.assignVendorToOrg(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.assignVendorToOrg(arg0, arg1);
+            return result;
+        }
+    }
     async bootstrapAdmins(arg0: Array<Principal>): Promise<void> {
         if (this.processError) {
             try {
@@ -358,6 +391,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async createOrganization(arg0: string, arg1: string, arg2: string): Promise<OrganizationId> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createOrganization(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createOrganization(arg0, arg1, arg2);
+            return result;
+        }
+    }
     async createProduct(arg0: string, arg1: string, arg2: bigint, arg3: string, arg4: string, arg5: string, arg6: boolean): Promise<ProductId> {
         if (this.processError) {
             try {
@@ -383,6 +430,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.createVendorProfile(arg0, arg1);
+            return result;
+        }
+    }
+    async deleteOrganization(arg0: OrganizationId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteOrganization(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteOrganization(arg0);
             return result;
         }
     }
@@ -412,6 +473,20 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getAllOrders();
             return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getAllOrganizations(): Promise<Array<Organization>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllOrganizations();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllOrganizations();
+            return result;
         }
     }
     async getAllUserProfiles(): Promise<Array<UserProfileWithPrincipal>> {
@@ -568,18 +643,32 @@ export class Backend implements backendInterface {
             return from_candid_opt_n17(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getProductById(arg0: ProductId): Promise<Product | null> {
+    async getOrganization(arg0: OrganizationId): Promise<Organization | null> {
         if (this.processError) {
             try {
-                const result = await this.actor.getProductById(arg0);
+                const result = await this.actor.getOrganization(arg0);
                 return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getProductById(arg0);
+            const result = await this.actor.getOrganization(arg0);
             return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getProductById(arg0: ProductId): Promise<Product | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getProductById(arg0);
+                return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getProductById(arg0);
+            return from_candid_opt_n19(this._uploadFile, this._downloadFile, result);
         }
     }
     async getPublishedProducts(): Promise<Array<Product>> {
@@ -664,6 +753,34 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getUserProfile(arg0);
             return from_candid_opt_n13(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getVendorOrders(): Promise<Array<Order>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getVendorOrders();
+                return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getVendorOrders();
+            return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getVendorOrganization(arg0: VendorId): Promise<Organization | null> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getVendorOrganization(arg0);
+                return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getVendorOrganization(arg0);
+            return from_candid_opt_n18(this._uploadFile, this._downloadFile, result);
         }
     }
     async getVendorProductsByPrincipal(arg0: Principal): Promise<Array<Product>> {
@@ -890,6 +1007,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async removeVendorFromOrg(arg0: OrganizationId, arg1: VendorId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.removeVendorFromOrg(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.removeVendorFromOrg(arg0, arg1);
+            return result;
+        }
+    }
     async saveCallerUserProfile(arg0: UserProfile): Promise<void> {
         if (this.processError) {
             try {
@@ -915,6 +1046,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.setAdmins(arg0);
+            return result;
+        }
+    }
+    async updateOrderStatus(arg0: OrderId, arg1: OrderStatus): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateOrderStatus(arg0, to_candid_OrderStatus_n20(this._uploadFile, this._downloadFile, arg1));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateOrderStatus(arg0, to_candid_OrderStatus_n20(this._uploadFile, this._downloadFile, arg1));
             return result;
         }
     }
@@ -1013,7 +1158,10 @@ function from_candid_opt_n16(_uploadFile: (file: ExternalBlob) => Promise<Uint8A
 function from_candid_opt_n17(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Order]): Order | null {
     return value.length === 0 ? null : from_candid_Order_n4(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Product]): Product | null {
+function from_candid_opt_n18(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Organization]): Organization | null {
+    return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n19(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [_Product]): Product | null {
     return value.length === 0 ? null : value[0];
 }
 function from_candid_opt_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [] | [Principal]): Principal | null {
@@ -1093,6 +1241,9 @@ function from_candid_variant_n7(_uploadFile: (file: ExternalBlob) => Promise<Uin
 function from_candid_vec_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Order>): Array<Order> {
     return value.map((x)=>from_candid_Order_n4(_uploadFile, _downloadFile, x));
 }
+function to_candid_OrderStatus_n20(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: OrderStatus): _OrderStatus {
+    return to_candid_variant_n21(_uploadFile, _downloadFile, value);
+}
 function to_candid_UserRole_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
     return to_candid_variant_n2(_uploadFile, _downloadFile, value);
 }
@@ -1109,6 +1260,29 @@ function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8
         user: null
     } : value == UserRole.guest ? {
         guest: null
+    } : value;
+}
+function to_candid_variant_n21(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: OrderStatus): {
+    shipped: null;
+} | {
+    cancelled: null;
+} | {
+    pending: null;
+} | {
+    delivered: null;
+} | {
+    confirmed: null;
+} {
+    return value == OrderStatus.shipped ? {
+        shipped: null
+    } : value == OrderStatus.cancelled ? {
+        cancelled: null
+    } : value == OrderStatus.pending ? {
+        pending: null
+    } : value == OrderStatus.delivered ? {
+        delivered: null
+    } : value == OrderStatus.confirmed ? {
+        confirmed: null
     } : value;
 }
 export interface CreateActorOptions {

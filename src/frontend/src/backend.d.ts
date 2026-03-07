@@ -7,9 +7,12 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+export interface UserProfile {
+    name: string;
+}
 export type OrderId = bigint;
-export type Money = bigint;
 export type Timestamp = bigint;
+export type Money = bigint;
 export interface BackendMetadata {
     version: Version;
     environment: Env;
@@ -46,6 +49,7 @@ export interface UpgradeSummary {
 }
 export type ProductCurrency = string;
 export type Version = string;
+export type OrganizationId = bigint;
 export type ProductId = bigint;
 export interface CartItem {
     productId: ProductId;
@@ -58,7 +62,15 @@ export interface VendorProfile {
     isVerified: boolean;
     companyName: Name;
 }
-export type VendorId = bigint;
+export interface Organization {
+    id: OrganizationId;
+    adminPrincipal: Principal;
+    name: string;
+    createdAt: Timestamp;
+    description: string;
+    logoUrl: string;
+    vendorIds: Array<VendorId>;
+}
 export interface Product {
     id: ProductId;
     title: string;
@@ -72,9 +84,7 @@ export interface Product {
     category: string;
     price: Money;
 }
-export interface UserProfile {
-    name: string;
-}
+export type VendorId = bigint;
 export enum Env {
     dev = "dev",
     prod = "prod"
@@ -96,14 +106,18 @@ export interface backendInterface {
     addToCart(productId: ProductId, quantity: bigint): Promise<void>;
     addVendorProfile(profile: VendorProfile): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    assignVendorToOrg(orgId: OrganizationId, vendorId: VendorId): Promise<void>;
     bootstrapAdmins(principals: Array<Principal>): Promise<void>;
     bootstrapFirstAdmin(): Promise<void>;
     claimAppOwner(): Promise<void>;
     clearCart(): Promise<void>;
+    createOrganization(name: string, description: string, logoUrl: string): Promise<OrganizationId>;
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
+    deleteOrganization(id: OrganizationId): Promise<void>;
     getAdmins(): Promise<Array<Principal>>;
     getAllOrders(): Promise<Array<Order>>;
+    getAllOrganizations(): Promise<Array<Organization>>;
     getAllUserProfiles(): Promise<Array<UserProfileWithPrincipal>>;
     getAllVendorProfiles(): Promise<Array<VendorProfile>>;
     getAppOwner(): Promise<Principal | null>;
@@ -115,6 +129,7 @@ export interface backendInterface {
     getCallerVendorProfile(): Promise<VendorProfile | null>;
     getCart(): Promise<Array<CartItem>>;
     getOrderById(orderId: OrderId): Promise<Order | null>;
+    getOrganization(id: OrganizationId): Promise<Organization | null>;
     getProductById(productId: ProductId): Promise<Product | null>;
     getPublishedProducts(): Promise<Array<Product>>;
     getTotalOrderCount(): Promise<bigint>;
@@ -122,6 +137,8 @@ export interface backendInterface {
     getTotalVendorCount(): Promise<bigint>;
     getUpgradeSummary(): Promise<UpgradeSummary>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
+    getVendorOrders(): Promise<Array<Order>>;
+    getVendorOrganization(vendorId: VendorId): Promise<Organization | null>;
     getVendorProductsByPrincipal(owner: Principal): Promise<Array<Product>>;
     getVendorProductsByVendorId(vendorId: VendorId): Promise<Array<Product>>;
     getVendorProfile(vendorId: VendorId): Promise<VendorProfile | null>;
@@ -138,8 +155,10 @@ export interface backendInterface {
     placeOrder(): Promise<OrderId>;
     removeAdmin(adminPrincipal: Principal): Promise<void>;
     removeFromCart(productId: ProductId): Promise<void>;
+    removeVendorFromOrg(orgId: OrganizationId, vendorId: VendorId): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setAdmins(admins: Array<Principal>): Promise<void>;
+    updateOrderStatus(orderId: OrderId, newStatus: OrderStatus): Promise<void>;
     updateProduct(productId: ProductId, title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<void>;
     updateVendorProfile(vendorId: VendorId, companyName: string, logoUrl: string): Promise<void>;
     upsertCallerVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;

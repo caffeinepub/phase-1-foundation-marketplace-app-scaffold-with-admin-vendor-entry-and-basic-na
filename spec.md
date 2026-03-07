@@ -1,25 +1,39 @@
 # Multi-Vendor Marketplace
 
 ## Current State
-The landing page still shows "Phase 1: Building the foundation" and "Phase 1 Features" with placeholder copy and a "What's Coming Next?" section referencing Phase 2 and Phase 3 as future work. The app is now fully built through Phase 7 with: Internet Identity login, vendor onboarding and verification, product listings, cart and orders, admin dashboard with user/vendor/org/order management, organizations directory, upgrade diagnostics, and stable on-chain storage.
+The app has a fully functional marketplace with vendors, products, cart, orders, admin dashboard, and an Organizations feature. However, Organizations are stored only in the browser's localStorage. This means org data is lost when the browser is cleared or a different device is used. All other data (vendors, products, orders, admins, app owner) is already persisted on-chain in stable Motoko variables.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Hero section with accurate description of the live marketplace
-- Feature highlights grid reflecting real, working features: Browse Products, Vendor Storefronts, Cart & Orders, Admin Dashboard, Organizations, Secure Auth
-- Call-to-action buttons: Browse Products, Vendors Directory, Get Started (role select)
+- `Organization` type in the Motoko backend with fields: id (Nat), name (Text), description (Text), logoUrl (Text), adminPrincipal (Principal), createdAt (Timestamp), vendorIds ([Nat] — stored as VendorId array)
+- Stable storage variable `stableOrganizations : [(Nat, Organization)]`
+- `lastOrgId` counter with stable backing
+- Backend CRUD methods:
+  - `createOrganization(name, description, logoUrl) : async Nat` — admin/owner only
+  - `getOrganization(id: Nat) : async ?Organization` — public
+  - `getAllOrganizations() : async [Organization]` — public
+  - `deleteOrganization(id: Nat) : async ()` — admin/owner only
+  - `assignVendorToOrg(orgId: Nat, vendorId: Nat) : async ()` — admin/owner only, exclusive (removes from other orgs)
+  - `removeVendorFromOrg(orgId: Nat, vendorId: Nat) : async ()` — admin/owner only
+- preupgrade/postupgrade hooks updated to persist organizations
+- Frontend `Organization` type updated so `id` is `string` (stringified Nat), `vendorIds` are `string[]` (stringified VendorIds), `createdAt` is `number` (converted from Timestamp bigint)
+- New frontend hook file `useOrganizations.ts` rewritten to call backend instead of localStorage
 
 ### Modify
-- Replace "Phase 1: Building the foundation" headline/subheadline with accurate marketplace branding
-- Replace "Phase 1 Features" section with real feature cards
-- Replace "What's Coming Next?" section with a "How It Works" or platform overview section appropriate for a live marketplace
+- `main.mo` — add Organization type, stable vars, methods, update hooks
+- `useOrganizations.ts` — replace localStorage adapter with backend API calls using the new backend methods
+- `AdminPlaceholderPage.tsx` — no logic changes needed; the hook interface stays the same
+- `OrganizationsPage.tsx` — no changes needed
+- `OrganizationDetailPage.tsx` — no changes needed
 
 ### Remove
-- All phase-numbered placeholder content
-- "Phase 2: Data & Onboarding" and "Phase 3+: Advanced Features" future-phase lists
+- All localStorage read/write logic in `useOrganizations.ts`
+- `generateUUID()` helper (replaced by backend Nat IDs)
+- `STORAGE_KEY` constant
 
 ## Implementation Plan
-1. Rewrite LandingPage.tsx with accurate hero copy, real feature cards (6 features), and a "How It Works" 3-step section
-2. Add links to /products, /vendors, /organizations, and /select-role from the landing page
-3. Keep styling consistent with the existing Tailwind/shadcn design system
+1. Add `Organization` type, stable vars, lastOrgId counter, CRUD methods, and updated preupgrade/postupgrade to `main.mo`
+2. Rewrite `useOrganizations.ts` to use backend API calls (keep the same exported hook names and return types so all pages continue working without changes)
+3. Update the frontend `Organization` type to match the backend shape
+4. Validate and deploy

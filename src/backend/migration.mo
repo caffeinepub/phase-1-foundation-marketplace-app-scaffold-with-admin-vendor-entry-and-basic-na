@@ -1,54 +1,120 @@
 import Map "mo:core/Map";
 import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
+import Int "mo:core/Int";
+import Text "mo:core/Text";
+import Auth "authorization/access-control";
+import MixinAuthorization "authorization/MixinAuthorization";
+import Runtime "mo:core/Runtime";
+import Time "mo:core/Time";
+import Iter "mo:core/Iter";
 
 module {
-  public type ProductId = Nat;
-  public type VendorId = Nat;
+  type VendorId = Nat;
+  type ProductId = Nat;
+  type Money = Nat;
+  type Timestamp = Int;
+  type OrganizationId = Nat;
 
-  public type VendorProfile = {
+  type ProductCurrency = Text;
+  type Name = Text;
+  type Url = Text;
+
+  type VendorProfile = {
     id : VendorId;
     user : Principal;
-    companyName : Text;
-    logoUrl : Text;
+    companyName : Name;
+    logoUrl : Url;
     isVerified : Bool;
   };
 
-  public type Product = {
+  type CartItem = {
+    productId : ProductId;
+    quantity : Nat;
+  };
+
+  type Product = {
     id : ProductId;
     ownerPrincipal : Principal;
     title : Text;
     description : Text;
-    price : Nat;
-    currency : Text;
+    price : Money;
+    currency : ProductCurrency;
     imageUrl : Text;
     category : Text;
     isPublished : Bool;
-    createdAt : Int;
-    updatedAt : Int;
+    createdAt : Timestamp;
+    updatedAt : Timestamp;
   };
 
-  public type UserProfile = {
+  type OrderStatus = {
+    #pending;
+    #confirmed;
+    #shipped;
+    #delivered;
+    #cancelled;
+  };
+
+  type OrderItem = {
+    productId : ProductId;
+    title : Text;
+    price : Money;
+    currency : Text;
+    quantity : Nat;
+  };
+
+  type OrderId = Nat;
+
+  type Order = {
+    id : OrderId;
+    buyer : Principal;
+    items : [OrderItem];
+    totalAmount : Money;
+    currency : Text;
+    status : OrderStatus;
+    createdAt : Timestamp;
+    updatedAt : Timestamp;
+  };
+
+  type Organization = {
+    id : OrganizationId;
     name : Text;
+    description : Text;
+    logoUrl : Text;
+    adminPrincipal : Principal;
+    createdAt : Timestamp;
+    vendorIds : [VendorId];
   };
 
-  public type OldActor = {
-    vendors : Map.Map<Nat, VendorProfile>;
-    products : Map.Map<Nat, Product>;
-    userProfiles : Map.Map<Principal, UserProfile>;
-    lastVendorId : Nat;
-    lastProductId : Nat;
+  type OldActor = {
+    stableVendors : [(VendorId, VendorProfile)];
+    stableProducts : [(ProductId, Product)];
+    stableUserProfiles : [(Principal, { name : Text })];
+    stableAdminAllowlist : [(Principal, Bool)];
+    stableAppOwner : ?Principal;
+    stableLastVendorId : Nat;
+    stableLastProductId : Nat;
+    stableOrders : [(OrderId, Order)];
+    stableCarts : [(Principal, [CartItem])];
+    stableLastOrderId : OrderId;
   };
 
-  public type NewActor = {
-    vendors : Map.Map<Nat, VendorProfile>;
-    products : Map.Map<Nat, Product>;
-    userProfiles : Map.Map<Principal, UserProfile>;
-    lastVendorId : Nat;
-    lastProductId : Nat;
+  type NewActor = {
+    stableVendors : [(VendorId, VendorProfile)];
+    stableProducts : [(ProductId, Product)];
+    stableUserProfiles : [(Principal, { name : Text })];
+    stableAdminAllowlist : [(Principal, Bool)];
+    stableAppOwner : ?Principal;
+    stableLastVendorId : Nat;
+    stableLastProductId : Nat;
+    stableOrders : [(OrderId, Order)];
+    stableCarts : [(Principal, [CartItem])];
+    stableLastOrderId : OrderId;
+    stableOrganizations : [(OrganizationId, Organization)];
+    stableLastOrgId : OrganizationId;
   };
 
   public func run(old : OldActor) : NewActor {
-    old;
+    { old with stableOrganizations = []; stableLastOrgId = 0 };
   };
 };

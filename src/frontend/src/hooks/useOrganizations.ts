@@ -1,46 +1,44 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type {
+  Organization as BackendOrg,
+  OrganizationId,
+  VendorId,
+} from "../backend";
 import type { Organization } from "../types/organization";
+import { useActor } from "./useActor";
 
-const STORAGE_KEY = "marketplace_organizations";
 const QUERY_KEY = ["organizations"] as const;
 
-// ─── localStorage adapter ──────────────────────────────────────────────────
+// ─── Shape converter ───────────────────────────────────────────────────────
 
-function generateUUID(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-function readOrganizations(): Organization[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Organization[];
-  } catch {
-    return [];
-  }
-}
-
-function writeOrganizations(orgs: Organization[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(orgs));
-  } catch {
-    // silently fail if localStorage is unavailable
-  }
+function fromBackend(org: BackendOrg): Organization {
+  return {
+    id: org.id.toString(),
+    name: org.name,
+    description: org.description,
+    logoUrl: org.logoUrl,
+    adminPrincipalText: org.adminPrincipal.toString(),
+    // Backend timestamp is nanoseconds (Int/bigint); convert to ms
+    createdAt: Number(org.createdAt) / 1_000_000,
+    vendorIds: org.vendorIds.map((v) => v.toString()),
+  };
 }
 
 // ─── Query hooks ───────────────────────────────────────────────────────────
 
-/** Returns all organizations, backed by React Query cache. */
+/** Returns all organizations from the backend canister. */
 export function useOrganizations() {
+  const { actor, isFetching } = useActor();
+
   return useQuery<Organization[]>({
     queryKey: QUERY_KEY,
-    queryFn: readOrganizations,
-    // localStorage is synchronous — no stale-while-revalidate delay needed
-    staleTime: 0,
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      const orgs = await actor.getAllOrganizations();
+      return orgs.map(fromBackend);
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 30_000,
   });
 }
 
@@ -70,25 +68,26 @@ export function useVendorOrganization(vendorId: string): Organization | null {
 
 // ─── Mutation hooks ────────────────────────────────────────────────────────
 
-/** Creates a new organization and invalidates the cache. */
+/** Creates a new organization via the backend canister. Admin/owner only. */
 export function useCreateOrganization() {
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
   return useMutation<
     Organization,
     Error,
     Omit<Organization, "id" | "createdAt" | "vendorIds">
   >({
-    mutationFn: (data) => {
-      const orgs = readOrganizations();
-      const newOrg: Organization = {
-        id: generateUUID(),
-        createdAt: Date.now(),
-        vendorIds: [],
-        ...data,
-      };
-      writeOrganizations([...orgs, newOrg]);
-      return Promise.resolve(newOrg);
+    mutationFn: async (data) => {
+      if (!actor) throw new Error("Actor not initialized");
+      const newId: OrganizationId = await actor.createOrganization(
+        data.name,
+        data.description,
+        data.logoUrl,
+      );
+      const org = await actor.getOrganization(newId);
+      if (!org) throw new Error("Organization not found after creation");
+      return fromBackend(org);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
@@ -96,7 +95,7 @@ export function useCreateOrganization() {
   });
 }
 
-/** Updates an existing organization and invalidates the cache. */
+/** Updates an existing organization — not yet exposed by backend; kept for API compatibility. */
 export function useUpdateOrganization() {
   const queryClient = useQueryClient();
 
@@ -105,11 +104,10 @@ export function useUpdateOrganization() {
     Error,
     { id: string; data: Partial<Omit<Organization, "id" | "createdAt">> }
   >({
-    mutationFn: ({ id, data }) => {
-      const orgs = readOrganizations();
-      const updated = orgs.map((o) => (o.id === id ? { ...o, ...data } : o));
-      writeOrganizations(updated);
-      return Promise.resolve();
+    mutationFn: async () => {
+      // Backend does not yet have an updateOrganization method.
+      // This stub prevents compile errors for any callers.
+      throw new Error("updateOrganization not yet supported");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
@@ -117,15 +115,15 @@ export function useUpdateOrganization() {
   });
 }
 
-/** Deletes an organization and invalidates the cache. */
+/** Deletes an organization via the backend canister. Admin/owner only. */
 export function useDeleteOrganization() {
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
   return useMutation<void, Error, string>({
-    mutationFn: (id) => {
-      const orgs = readOrganizations();
-      writeOrganizations(orgs.filter((o) => o.id !== id));
-      return Promise.resolve();
+    mutationFn: async (id) => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.deleteOrganization(BigInt(id) as OrganizationId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
@@ -133,26 +131,18 @@ export function useDeleteOrganization() {
   });
 }
 
-/** Assigns a vendor to an organization (exclusive membership) and invalidates the cache. */
+/** Assigns a vendor to an organization (exclusive membership). Admin/owner only. */
 export function useAssignVendorToOrg() {
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
   return useMutation<void, Error, { orgId: string; vendorId: string }>({
-    mutationFn: ({ orgId, vendorId }) => {
-      const orgs = readOrganizations();
-      // Remove vendor from any existing org first (exclusive membership)
-      const cleaned = orgs.map((o) => ({
-        ...o,
-        vendorIds: o.vendorIds.filter((v) => v !== vendorId),
-      }));
-      // Add to target org
-      const updated = cleaned.map((o) =>
-        o.id === orgId && !o.vendorIds.includes(vendorId)
-          ? { ...o, vendorIds: [...o.vendorIds, vendorId] }
-          : o,
+    mutationFn: async ({ orgId, vendorId }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.assignVendorToOrg(
+        BigInt(orgId) as OrganizationId,
+        BigInt(vendorId) as VendorId,
       );
-      writeOrganizations(updated);
-      return Promise.resolve();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
@@ -160,20 +150,18 @@ export function useAssignVendorToOrg() {
   });
 }
 
-/** Removes a vendor from an organization and invalidates the cache. */
+/** Removes a vendor from an organization. Admin/owner only. */
 export function useRemoveVendorFromOrg() {
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
   return useMutation<void, Error, { orgId: string; vendorId: string }>({
-    mutationFn: ({ orgId, vendorId }) => {
-      const orgs = readOrganizations();
-      const updated = orgs.map((o) =>
-        o.id === orgId
-          ? { ...o, vendorIds: o.vendorIds.filter((v) => v !== vendorId) }
-          : o,
+    mutationFn: async ({ orgId, vendorId }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.removeVendorFromOrg(
+        BigInt(orgId) as OrganizationId,
+        BigInt(vendorId) as VendorId,
       );
-      writeOrganizations(updated);
-      return Promise.resolve();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
