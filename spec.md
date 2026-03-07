@@ -1,39 +1,29 @@
 # Multi-Vendor Marketplace
 
 ## Current State
-The app has a fully functional marketplace with vendors, products, cart, orders, admin dashboard, and an Organizations feature. However, Organizations are stored only in the browser's localStorage. This means org data is lost when the browser is cleared or a different device is used. All other data (vendors, products, orders, admins, app owner) is already persisted on-chain in stable Motoko variables.
+- Organizations are fully stored on-chain via the Motoko backend (`createOrganization`, `deleteOrganization`, `assignVendorToOrg`, `removeVendorFromOrg`).
+- The frontend `useUpdateOrganization` hook exists but throws `"updateOrganization not yet supported"` because no backend method exists.
+- The Admin Dashboard has no edit UI for organizations — only create and delete.
+- Vendors can be assigned/removed from orgs but org metadata (name, description, logoUrl) cannot be changed after creation.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `Organization` type in the Motoko backend with fields: id (Nat), name (Text), description (Text), logoUrl (Text), adminPrincipal (Principal), createdAt (Timestamp), vendorIds ([Nat] — stored as VendorId array)
-- Stable storage variable `stableOrganizations : [(Nat, Organization)]`
-- `lastOrgId` counter with stable backing
-- Backend CRUD methods:
-  - `createOrganization(name, description, logoUrl) : async Nat` — admin/owner only
-  - `getOrganization(id: Nat) : async ?Organization` — public
-  - `getAllOrganizations() : async [Organization]` — public
-  - `deleteOrganization(id: Nat) : async ()` — admin/owner only
-  - `assignVendorToOrg(orgId: Nat, vendorId: Nat) : async ()` — admin/owner only, exclusive (removes from other orgs)
-  - `removeVendorFromOrg(orgId: Nat, vendorId: Nat) : async ()` — admin/owner only
-- preupgrade/postupgrade hooks updated to persist organizations
-- Frontend `Organization` type updated so `id` is `string` (stringified Nat), `vendorIds` are `string[]` (stringified VendorIds), `createdAt` is `number` (converted from Timestamp bigint)
-- New frontend hook file `useOrganizations.ts` rewritten to call backend instead of localStorage
+- `updateOrganization(id, name, description, logoUrl)` backend method in `main.mo`, restricted to App Owner or Admin.
+- Edit dialog in the Admin Dashboard Organizations section — pre-populated with existing org data, triggered by an "Edit" button on each org card.
+- Stable storage already covers organizations; no new stable vars needed.
 
 ### Modify
-- `main.mo` — add Organization type, stable vars, methods, update hooks
-- `useOrganizations.ts` — replace localStorage adapter with backend API calls using the new backend methods
-- `AdminPlaceholderPage.tsx` — no logic changes needed; the hook interface stays the same
-- `OrganizationsPage.tsx` — no changes needed
-- `OrganizationDetailPage.tsx` — no changes needed
+- `useUpdateOrganization` hook in `useOrganizations.ts` — replace the stub with a real backend call using the new `updateOrganization` actor method.
+- Admin Dashboard (`AdminPlaceholderPage.tsx`) — add Edit button per org card, edit dialog state, and wire the `useUpdateOrganization` mutation.
 
 ### Remove
-- All localStorage read/write logic in `useOrganizations.ts`
-- `generateUUID()` helper (replaced by backend Nat IDs)
-- `STORAGE_KEY` constant
+- The `throw new Error("updateOrganization not yet supported")` stub in `useUpdateOrganization`.
 
 ## Implementation Plan
-1. Add `Organization` type, stable vars, lastOrgId counter, CRUD methods, and updated preupgrade/postupgrade to `main.mo`
-2. Rewrite `useOrganizations.ts` to use backend API calls (keep the same exported hook names and return types so all pages continue working without changes)
-3. Update the frontend `Organization` type to match the backend shape
-4. Validate and deploy
+1. Add `updateOrganization(id: OrganizationId, name: Text, description: Text, logoUrl: Text) : async ()` to `main.mo`, guarded by `isAppOwnerOrAdmin`.
+2. Update `useUpdateOrganization` in `useOrganizations.ts` to call `actor.updateOrganization(...)` and invalidate the organizations query on success.
+3. Add edit state (open flag, form fields) to `AdminPlaceholderPage.tsx`.
+4. Add an "Edit" button to each org card that opens a pre-filled dialog.
+5. Wire the dialog's Save button to `useUpdateOrganization`.
+6. Validate, build, and deploy.

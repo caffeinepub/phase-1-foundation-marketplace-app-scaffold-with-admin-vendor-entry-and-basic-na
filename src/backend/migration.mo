@@ -1,50 +1,19 @@
 import Map "mo:core/Map";
-import Nat "mo:core/Nat";
 import Principal "mo:core/Principal";
+import Nat "mo:core/Nat";
 import Int "mo:core/Int";
-import Text "mo:core/Text";
-import Auth "authorization/access-control";
-import MixinAuthorization "authorization/MixinAuthorization";
-import Runtime "mo:core/Runtime";
-import Time "mo:core/Time";
-import Iter "mo:core/Iter";
 
 module {
-  type VendorId = Nat;
-  type ProductId = Nat;
   type Money = Nat;
+  type ProductCurrency = Text;
+  type ProductId = Nat;
+  type VendorId = Nat;
   type Timestamp = Int;
   type OrganizationId = Nat;
-
-  type ProductCurrency = Text;
-  type Name = Text;
-  type Url = Text;
-
-  type VendorProfile = {
-    id : VendorId;
-    user : Principal;
-    companyName : Name;
-    logoUrl : Url;
-    isVerified : Bool;
-  };
 
   type CartItem = {
     productId : ProductId;
     quantity : Nat;
-  };
-
-  type Product = {
-    id : ProductId;
-    ownerPrincipal : Principal;
-    title : Text;
-    description : Text;
-    price : Money;
-    currency : ProductCurrency;
-    imageUrl : Text;
-    category : Text;
-    isPublished : Bool;
-    createdAt : Timestamp;
-    updatedAt : Timestamp;
   };
 
   type OrderStatus = {
@@ -76,6 +45,30 @@ module {
     updatedAt : Timestamp;
   };
 
+  type UserProfile = { name : Text };
+
+  type VendorProfile = {
+    id : VendorId;
+    user : Principal;
+    companyName : Text;
+    logoUrl : Text;
+    isVerified : Bool;
+  };
+
+  type Product = {
+    id : ProductId;
+    ownerPrincipal : Principal;
+    title : Text;
+    description : Text;
+    price : Money;
+    currency : ProductCurrency;
+    imageUrl : Text;
+    category : Text;
+    isPublished : Bool;
+    createdAt : Timestamp;
+    updatedAt : Timestamp;
+  };
+
   type Organization = {
     id : OrganizationId;
     name : Text;
@@ -87,34 +80,12 @@ module {
   };
 
   type OldActor = {
-    stableVendors : [(VendorId, VendorProfile)];
-    stableProducts : [(ProductId, Product)];
-    stableUserProfiles : [(Principal, { name : Text })];
-    stableAdminAllowlist : [(Principal, Bool)];
-    stableAppOwner : ?Principal;
-    stableLastVendorId : Nat;
-    stableLastProductId : Nat;
-    stableOrders : [(OrderId, Order)];
-    stableCarts : [(Principal, [CartItem])];
-    stableLastOrderId : OrderId;
+    products : Map.Map<ProductId, Product>;
+    vendors : Map.Map<VendorId, VendorProfile>;
+    organizations : Map.Map<OrganizationId, Organization>;
   };
 
-  type NewActor = {
-    stableVendors : [(VendorId, VendorProfile)];
-    stableProducts : [(ProductId, Product)];
-    stableUserProfiles : [(Principal, { name : Text })];
-    stableAdminAllowlist : [(Principal, Bool)];
-    stableAppOwner : ?Principal;
-    stableLastVendorId : Nat;
-    stableLastProductId : Nat;
-    stableOrders : [(OrderId, Order)];
-    stableCarts : [(Principal, [CartItem])];
-    stableLastOrderId : OrderId;
-    stableOrganizations : [(OrganizationId, Organization)];
-    stableLastOrgId : OrganizationId;
-  };
-
-  public func run(old : OldActor) : NewActor {
-    { old with stableOrganizations = []; stableLastOrgId = 0 };
+  public func run(old : OldActor) : OldActor {
+    old; // No state changes needed
   };
 };

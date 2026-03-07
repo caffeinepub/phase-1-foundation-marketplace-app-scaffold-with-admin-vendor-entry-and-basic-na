@@ -95,19 +95,24 @@ export function useCreateOrganization() {
   });
 }
 
-/** Updates an existing organization — not yet exposed by backend; kept for API compatibility. */
+/** Updates an existing organization via the backend canister. Admin/owner only. */
 export function useUpdateOrganization() {
   const queryClient = useQueryClient();
+  const { actor } = useActor();
 
   return useMutation<
     void,
     Error,
     { id: string; data: Partial<Omit<Organization, "id" | "createdAt">> }
   >({
-    mutationFn: async () => {
-      // Backend does not yet have an updateOrganization method.
-      // This stub prevents compile errors for any callers.
-      throw new Error("updateOrganization not yet supported");
+    mutationFn: async ({ id, data }) => {
+      if (!actor) throw new Error("Actor not initialized");
+      await actor.updateOrganization(
+        BigInt(id) as OrganizationId,
+        data.name ?? "",
+        data.description ?? "",
+        data.logoUrl ?? "",
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });

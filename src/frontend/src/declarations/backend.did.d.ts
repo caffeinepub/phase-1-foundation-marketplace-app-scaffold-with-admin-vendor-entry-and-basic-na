@@ -152,6 +152,10 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setAdmins' : ActorMethod<[Array<Principal>], undefined>,
   'updateOrderStatus' : ActorMethod<[OrderId, OrderStatus], undefined>,
+  'updateOrganization' : ActorMethod<
+    [OrganizationId, string, string, string],
+    undefined
+  >,
   'updateProduct' : ActorMethod<
     [ProductId, string, string, bigint, string, string, string, boolean],
     undefined

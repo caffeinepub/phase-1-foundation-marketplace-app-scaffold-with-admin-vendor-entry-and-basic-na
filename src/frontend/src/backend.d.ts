@@ -159,6 +159,7 @@ export interface backendInterface {
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setAdmins(admins: Array<Principal>): Promise<void>;
     updateOrderStatus(orderId: OrderId, newStatus: OrderStatus): Promise<void>;
+    updateOrganization(id: OrganizationId, name: string, description: string, logoUrl: string): Promise<void>;
     updateProduct(productId: ProductId, title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<void>;
     updateVendorProfile(vendorId: VendorId, companyName: string, logoUrl: string): Promise<void>;
     upsertCallerVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;

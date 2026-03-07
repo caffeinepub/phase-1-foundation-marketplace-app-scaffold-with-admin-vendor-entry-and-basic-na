@@ -9,7 +9,6 @@ import Auth "authorization/access-control";
 import Map "mo:core/Map";
 import MixinAuthorization "authorization/MixinAuthorization";
 import Migration "migration";
-
 (with migration = Migration.run)
 actor {
   type Env = {
@@ -847,6 +846,31 @@ actor {
     organizations.add(orgId, newOrg);
     lastOrgId += 1;
     orgId;
+  };
+
+  // New updateOrganization method
+  public shared ({ caller }) func updateOrganization(
+    id : OrganizationId,
+    name : Text,
+    description : Text,
+    logoUrl : Text,
+  ) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admin or owner can update organizations");
+    };
+
+    switch (organizations.get(id)) {
+      case (null) { Runtime.trap("Organization not found") };
+      case (?existingOrg) {
+        let updatedOrg : Organization = {
+          existingOrg with
+          name;
+          description;
+          logoUrl;
+        };
+        organizations.add(id, updatedOrg);
+      };
+    };
   };
 
   public query ({ caller }) func getOrganization(id : OrganizationId) : async ?Organization {

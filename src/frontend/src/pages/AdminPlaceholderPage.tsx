@@ -39,6 +39,7 @@ import {
   Crown,
   Database,
   Info,
+  Pencil,
   Plus,
   Shield,
   ShoppingBag,
@@ -79,6 +80,7 @@ import {
   useOrganizationStats,
   useOrganizations,
   useRemoveVendorFromOrg,
+  useUpdateOrganization,
 } from "../hooks/useOrganizations";
 
 function getOrderStatusConfig(status: OrderStatus | string): {
@@ -220,6 +222,7 @@ export default function AdminPlaceholderPage() {
   const { totalOrgs, totalVendorsAssigned } = useOrganizationStats();
   const createOrgMutation = useCreateOrganization();
   const deleteOrgMutation = useDeleteOrganization();
+  const updateOrgMutation = useUpdateOrganization();
   const assignVendorMutation = useAssignVendorToOrg();
   const removeVendorMutation = useRemoveVendorFromOrg();
 
@@ -230,6 +233,13 @@ export default function AdminPlaceholderPage() {
   const [selectedVendorForOrg, setSelectedVendorForOrg] = useState<
     Record<string, string>
   >({});
+
+  // Edit organization dialog state
+  const [editOrgOpen, setEditOrgOpen] = useState(false);
+  const [editOrgId, setEditOrgId] = useState<string | null>(null);
+  const [editOrgName, setEditOrgName] = useState("");
+  const [editOrgDescription, setEditOrgDescription] = useState("");
+  const [editOrgLogoUrl, setEditOrgLogoUrl] = useState("");
 
   const handleCreateOrg = () => {
     if (!newOrgName.trim()) return;
@@ -271,6 +281,40 @@ export default function AdminPlaceholderPage() {
 
   const handleRemoveVendorFromOrg = (orgId: string, vendorId: string) => {
     removeVendorMutation.mutate({ orgId, vendorId });
+  };
+
+  const handleOpenEditOrg = (org: {
+    id: string;
+    name: string;
+    description: string;
+    logoUrl: string;
+  }) => {
+    setEditOrgId(org.id);
+    setEditOrgName(org.name);
+    setEditOrgDescription(org.description);
+    setEditOrgLogoUrl(org.logoUrl);
+    setEditOrgOpen(true);
+  };
+
+  const handleUpdateOrg = async () => {
+    if (!editOrgId || !editOrgName.trim()) return;
+    try {
+      await updateOrgMutation.mutateAsync({
+        id: editOrgId,
+        data: {
+          name: editOrgName.trim(),
+          description: editOrgDescription.trim(),
+          logoUrl: editOrgLogoUrl.trim(),
+        },
+      });
+      toast.success("Organization updated successfully");
+      setEditOrgOpen(false);
+      setEditOrgId(null);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to update organization";
+      toast.error(msg);
+    }
   };
 
   const canManageAdmins = isAuthorized && !isAdminLoading && !isAppOwnerLoading;
@@ -990,6 +1034,78 @@ export default function AdminPlaceholderPage() {
               Group vendors into organizations for better discoverability
             </CardDescription>
           </CardHeader>
+
+          {/* Edit Organization Dialog */}
+          <Dialog open={editOrgOpen} onOpenChange={setEditOrgOpen}>
+            <DialogContent data-ocid="admin.orgs.edit.dialog">
+              <DialogHeader>
+                <DialogTitle>Edit Organization</DialogTitle>
+                <DialogDescription>
+                  Update the details for this organization.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="editOrgName">
+                    Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    data-ocid="admin.edit_org.name.input"
+                    id="editOrgName"
+                    placeholder="Organization name"
+                    value={editOrgName}
+                    onChange={(e) => setEditOrgName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editOrgDescription">Description</Label>
+                  <Textarea
+                    data-ocid="admin.edit_org.description.textarea"
+                    id="editOrgDescription"
+                    placeholder="Describe this organization..."
+                    value={editOrgDescription}
+                    onChange={(e) => setEditOrgDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editOrgLogoUrl">Logo URL</Label>
+                  <Input
+                    data-ocid="admin.edit_org.logoUrl.input"
+                    id="editOrgLogoUrl"
+                    type="url"
+                    placeholder="https://example.com/logo.png"
+                    value={editOrgLogoUrl}
+                    onChange={(e) => setEditOrgLogoUrl(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  data-ocid="admin.edit_org.cancel_button"
+                  variant="outline"
+                  onClick={() => setEditOrgOpen(false)}
+                  disabled={updateOrgMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  data-ocid="admin.edit_org.submit_button"
+                  onClick={handleUpdateOrg}
+                  disabled={!editOrgName.trim() || updateOrgMutation.isPending}
+                >
+                  {updateOrgMutation.isPending ? (
+                    <>
+                      <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <CardContent>
             {organizations.length === 0 ? (
               <div
@@ -1049,16 +1165,28 @@ export default function AdminPlaceholderPage() {
                           </Badge>
                         </div>
                       </div>
-                      <Button
-                        data-ocid="admin.orgs.delete.button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive gap-1 flex-shrink-0"
-                        onClick={() => handleDeleteOrg(org.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </Button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          data-ocid="admin.orgs.edit.button"
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => handleOpenEditOrg(org)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </Button>
+                        <Button
+                          data-ocid="admin.orgs.delete.button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive gap-1"
+                          onClick={() => handleDeleteOrg(org.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Assigned vendors */}

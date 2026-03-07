@@ -205,6 +205,11 @@ export const idlService = IDL.Service({
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
   'updateOrderStatus' : IDL.Func([OrderId, OrderStatus], [], []),
+  'updateOrganization' : IDL.Func(
+      [OrganizationId, IDL.Text, IDL.Text, IDL.Text],
+      [],
+      [],
+    ),
   'updateProduct' : IDL.Func(
       [
         ProductId,
@@ -429,6 +434,11 @@ export const idlFactory = ({ IDL }) => {
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
     'updateOrderStatus' : IDL.Func([OrderId, OrderStatus], [], []),
+    'updateOrganization' : IDL.Func(
+        [OrganizationId, IDL.Text, IDL.Text, IDL.Text],
+        [],
+        [],
+      ),
     'updateProduct' : IDL.Func(
         [
           ProductId,
