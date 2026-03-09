@@ -248,6 +248,10 @@ export interface backendInterface {
     updateVendorProfile(vendorId: VendorId, companyName: string, logoUrl: string): Promise<void>;
     upsertCallerVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
     verifyVendor(vendorId: VendorId): Promise<void>;
+    unverifyVendor(vendorId: VendorId): Promise<void>;
+    suspendVendor(vendorId: VendorId): Promise<void>;
+    unsuspendVendor(vendorId: VendorId): Promise<void>;
+    isVendorSuspended(vendorId: VendorId): Promise<boolean>;
     whoami(): Promise<Principal>;
 }
 import type { BackendMetadata as _BackendMetadata, Env as _Env, Money as _Money, Order as _Order, OrderId as _OrderId, OrderItem as _OrderItem, OrderStatus as _OrderStatus, Organization as _Organization, Product as _Product, Timestamp as _Timestamp, UserProfile as _UserProfile, UserRole as _UserRole, VendorProfile as _VendorProfile, Version as _Version } from "./declarations/backend.did.d.ts";
@@ -1134,6 +1138,26 @@ export class Backend implements backendInterface {
             const result = await this.actor.upsertCallerVendorProfile(arg0, arg1);
             return result;
         }
+    }
+    async unverifyVendor(arg0: VendorId): Promise<void> {
+        if (this.processError) {
+            try { const result = await (this.actor as any).unverifyVendor(arg0); return result; } catch (e) { this.processError(e); throw new Error("unreachable"); }
+        } else { const result = await (this.actor as any).unverifyVendor(arg0); return result; }
+    }
+    async suspendVendor(arg0: VendorId): Promise<void> {
+        if (this.processError) {
+            try { const result = await (this.actor as any).suspendVendor(arg0); return result; } catch (e) { this.processError(e); throw new Error("unreachable"); }
+        } else { const result = await (this.actor as any).suspendVendor(arg0); return result; }
+    }
+    async unsuspendVendor(arg0: VendorId): Promise<void> {
+        if (this.processError) {
+            try { const result = await (this.actor as any).unsuspendVendor(arg0); return result; } catch (e) { this.processError(e); throw new Error("unreachable"); }
+        } else { const result = await (this.actor as any).unsuspendVendor(arg0); return result; }
+    }
+    async isVendorSuspended(arg0: VendorId): Promise<boolean> {
+        if (this.processError) {
+            try { const result = await (this.actor as any).isVendorSuspended(arg0); return result; } catch (e) { this.processError(e); throw new Error("unreachable"); }
+        } else { const result = await (this.actor as any).isVendorSuspended(arg0); return result; }
     }
     async verifyVendor(arg0: VendorId): Promise<void> {
         if (this.processError) {

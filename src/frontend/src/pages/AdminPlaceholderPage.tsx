@@ -68,8 +68,11 @@ import {
   useIsCallerAdmin,
   useIsCallerAppOwner,
   useRemoveAdmin,
+  useSuspendVendor,
   useTotalOrderCount,
   useTotalUserCount,
+  useUnsuspendVendor,
+  useUnverifyVendor,
   useUpdateOrderStatus,
   useUpgradeSummary,
   useVerifyVendor,
@@ -175,6 +178,12 @@ export default function AdminPlaceholderPage() {
   } = useAllOrders(isAuthorized);
 
   const verifyVendorMutation = useVerifyVendor();
+  const unverifyVendorMutation = useUnverifyVendor();
+  const suspendVendorMutation = useSuspendVendor();
+  const unsuspendVendorMutation = useUnsuspendVendor();
+  const [suspendedVendorIds, setSuspendedVendorIds] = useState<Set<string>>(
+    new Set(),
+  );
   const addAdminMutation = useAddAdmin();
   const removeAdminMutation = useRemoveAdmin();
   const bootstrapFirstAdminMutation = useBootstrapFirstAdmin();
@@ -327,6 +336,36 @@ export default function AdminPlaceholderPage() {
   const canManageAdmins = isAuthorized && !isAdminLoading && !isAppOwnerLoading;
   const noAdminsExist = hasAdmin === false;
   const showBootstrapUI = isAuthenticated && noAdminsExist && !hasAdminLoading;
+
+  const handleUnverify = async (vendorId: VendorId) => {
+    try {
+      await unverifyVendorMutation.mutateAsync(vendorId);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSuspend = async (vendorId: VendorId) => {
+    try {
+      await suspendVendorMutation.mutateAsync(vendorId);
+      setSuspendedVendorIds((prev) => new Set([...prev, vendorId.toString()]));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUnsuspend = async (vendorId: VendorId) => {
+    try {
+      await unsuspendVendorMutation.mutateAsync(vendorId);
+      setSuspendedVendorIds((prev) => {
+        const s = new Set(prev);
+        s.delete(vendorId.toString());
+        return s;
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleVerify = async (vendorId: VendorId) => {
     setVerifyError(null);
@@ -1019,23 +1058,77 @@ export default function AdminPlaceholderPage() {
                             Verified
                           </Badge>
                         )}
+                        {suspendedVendorIds.has(vendor.id.toString()) && (
+                          <Badge variant="destructive" className="gap-1">
+                            Suspended
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground font-mono">
                         {vendor.user.toString()}
                       </p>
                     </div>
-                    {!vendor.isVerified && canManageAdmins && (
-                      <Button
-                        onClick={() => handleVerify(vendor.id)}
-                        disabled={verifyVendorMutation.isPending}
-                        size="sm"
-                        className="gap-2"
+                    {canManageAdmins && (
+                      <div
+                        className="flex items-center gap-2"
+                        data-ocid="vendor.actions.panel"
                       >
-                        <CheckCircle className="h-4 w-4" />
-                        {verifyVendorMutation.isPending
-                          ? "Verifying..."
-                          : "Verify"}
-                      </Button>
+                        {!vendor.isVerified && (
+                          <Button
+                            data-ocid="vendor.verify.button"
+                            onClick={() => handleVerify(vendor.id)}
+                            disabled={verifyVendorMutation.isPending}
+                            size="sm"
+                            className="gap-1"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            {verifyVendorMutation.isPending
+                              ? "Verifying..."
+                              : "Verify"}
+                          </Button>
+                        )}
+                        {vendor.isVerified && (
+                          <Button
+                            data-ocid="vendor.unverify.button"
+                            onClick={() => handleUnverify(vendor.id)}
+                            disabled={unverifyVendorMutation.isPending}
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                          >
+                            {unverifyVendorMutation.isPending
+                              ? "Removing..."
+                              : "Unverify"}
+                          </Button>
+                        )}
+                        {suspendedVendorIds.has(vendor.id.toString()) ? (
+                          <Button
+                            data-ocid="vendor.unsuspend.button"
+                            onClick={() => handleUnsuspend(vendor.id)}
+                            disabled={unsuspendVendorMutation.isPending}
+                            size="sm"
+                            variant="outline"
+                            className="gap-1"
+                          >
+                            {unsuspendVendorMutation.isPending
+                              ? "Restoring..."
+                              : "Unsuspend"}
+                          </Button>
+                        ) : (
+                          <Button
+                            data-ocid="vendor.suspend.button"
+                            onClick={() => handleSuspend(vendor.id)}
+                            disabled={suspendVendorMutation.isPending}
+                            size="sm"
+                            variant="destructive"
+                            className="gap-1"
+                          >
+                            {suspendVendorMutation.isPending
+                              ? "Suspending..."
+                              : "Suspend"}
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}

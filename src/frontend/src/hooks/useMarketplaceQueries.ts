@@ -730,3 +730,71 @@ export function useSaveCallerUserProfile() {
     },
   });
 }
+
+// Admin: Unverify a vendor
+export function useUnverifyVendor() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (vendorId: VendorId) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.unverifyVendor(vendorId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allVendorProfiles"] });
+      queryClient.invalidateQueries({ queryKey: ["verifiedVendors"] });
+      queryClient.invalidateQueries({ queryKey: ["listVerifiedVendors"] });
+    },
+  });
+}
+
+// Admin: Suspend a vendor
+export function useSuspendVendor() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (vendorId: VendorId) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.suspendVendor(vendorId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allVendorProfiles"] });
+      queryClient.invalidateQueries({ queryKey: ["verifiedVendors"] });
+      queryClient.invalidateQueries({ queryKey: ["listVerifiedVendors"] });
+    },
+  });
+}
+
+// Admin: Unsuspend a vendor
+export function useUnsuspendVendor() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (vendorId: VendorId) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.unsuspendVendor(vendorId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["allVendorProfiles"] });
+      queryClient.invalidateQueries({ queryKey: ["verifiedVendors"] });
+      queryClient.invalidateQueries({ queryKey: ["listVerifiedVendors"] });
+    },
+  });
+}
+
+// Query: Is a specific vendor suspended?
+export function useIsVendorSuspended(vendorId: VendorId | null) {
+  const { actor } = useActor();
+
+  return useQuery<boolean>({
+    queryKey: ["isVendorSuspended", vendorId?.toString()],
+    queryFn: async () => {
+      if (!actor || vendorId === null) throw new Error("Not ready");
+      return actor.isVendorSuspended(vendorId);
+    },
+    enabled: !!actor && vendorId !== null,
+  });
+}

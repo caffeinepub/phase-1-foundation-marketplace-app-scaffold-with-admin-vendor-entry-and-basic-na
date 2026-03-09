@@ -103,6 +103,7 @@ actor {
 
   stable var stableOrganizations : [(Nat, Organization)] = [];
   stable var stableLastOrgId : Nat = 0;
+  stable var stableSuspendedVendors : [(VendorId, Bool)] = [];
 
   var userProfiles = Map.fromIter<Principal, UserProfile>(stableUserProfiles.vals());
   var vendors = Map.fromIter<VendorId, VendorProfile>(stableVendors.vals());
@@ -116,6 +117,7 @@ actor {
 
   var organizations = Map.fromIter<Nat, Organization>(stableOrganizations.vals());
   var lastOrgId = stableLastOrgId;
+  var suspendedVendors = Map.fromIter<VendorId, Bool>(stableSuspendedVendors.vals());
 
   public type Product = {
     id : ProductId;
@@ -181,6 +183,7 @@ actor {
     stableLastOrderId := lastOrderId;
     stableOrganizations := organizations.entries().toArray();
     stableLastOrgId := lastOrgId;
+    stableSuspendedVendors := suspendedVendors.entries().toArray();
   };
 
   system func postupgrade() {};
@@ -605,7 +608,45 @@ actor {
   };
 
   public query ({ caller }) func listVerifiedVendors() : async [VendorProfile] {
-    vendors.values().filter(func(v) { v.isVerified }).toArray();
+    vendors.values().filter(func(v) { v.isVerified and not suspendedVendors.containsKey(v.id) }).toArray();
+  };
+
+  public query ({ caller }) func isVendorSuspended(vendorId : VendorId) : async Bool {
+    suspendedVendors.containsKey(vendorId);
+  };
+
+  public shared ({ caller }) func unverifyVendor(vendorId : VendorId) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admins can unverify vendors");
+    };
+    switch (vendors.get(vendorId)) {
+      case (null) { Runtime.trap("Vendor not found") };
+      case (?existingVendor) {
+        let updated : VendorProfile = {
+          existingVendor with isVerified = false
+        };
+        vendors.add(vendorId, updated);
+      };
+    };
+  };
+
+  public shared ({ caller }) func suspendVendor(vendorId : VendorId) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admins can suspend vendors");
+    };
+    switch (vendors.get(vendorId)) {
+      case (null) { Runtime.trap("Vendor not found") };
+      case (?_) {
+        suspendedVendors.add(vendorId, true);
+      };
+    };
+  };
+
+  public shared ({ caller }) func unsuspendVendor(vendorId : VendorId) : async () {
+    if (not isAppOwnerOrAdmin(caller)) {
+      Runtime.trap("Unauthorized: Only admins can unsuspend vendors");
+    };
+    suspendedVendors.remove(vendorId);
   };
 
   public query ({ caller }) func listPublishedProductsByVendor(vendorPrincipal : Principal) : async [Product] {
