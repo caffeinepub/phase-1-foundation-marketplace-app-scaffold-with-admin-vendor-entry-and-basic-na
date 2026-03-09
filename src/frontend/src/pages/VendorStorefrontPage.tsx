@@ -10,17 +10,9 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import {
-  AlertCircle,
-  ArrowLeft,
-  Package,
-  ShieldCheck,
-  Store,
-} from "lucide-react";
-import type { Product } from "../backend";
+import { AlertCircle, ArrowLeft, Package, ShieldCheck } from "lucide-react";
 import {
   useListPublishedProductsByVendor,
-  useVendorProducts,
   useVendorProfileById,
 } from "../hooks/useMarketplaceQueries";
 import {
@@ -38,33 +30,13 @@ export default function VendorStorefrontPage() {
     isLoading: vendorLoading,
     error: vendorError,
   } = useVendorProfileById(vendorIdBigInt);
+
+  // Use principal-based discovery API — single fetch, no merge needed
   const {
-    data: productsByVendorId,
-    isLoading: productsLoadingById,
-    error: productsErrorById,
-  } = useVendorProducts(vendorIdBigInt);
-  // Also fetch by principal (new discovery API) once vendor profile is loaded
-  const { data: productsByPrincipal, isLoading: productsLoadingByPrincipal } =
-    useListPublishedProductsByVendor(vendor?.user);
-
-  // Merge and deduplicate products from both lookup methods
-  const products = (() => {
-    const byId: Product[] = productsByVendorId ?? [];
-    const byPrincipal: Product[] = productsByPrincipal ?? [];
-    const seen = new Set<string>();
-    const merged: Product[] = [];
-    for (const p of [...byId, ...byPrincipal]) {
-      const key = p.id.toString();
-      if (!seen.has(key)) {
-        seen.add(key);
-        merged.push(p);
-      }
-    }
-    return merged;
-  })();
-
-  const productsLoading = productsLoadingById || productsLoadingByPrincipal;
-  const productsError = productsErrorById;
+    data: products,
+    isLoading: productsLoading,
+    error: productsError,
+  } = useListPublishedProductsByVendor(vendor?.user);
 
   const formatPrice = (price: bigint, currency: string) => {
     const priceNum = Number(price) / 100;
@@ -81,7 +53,6 @@ export default function VendorStorefrontPage() {
     });
   };
 
-  // Loading state
   if (vendorLoading) {
     return (
       <div className="container mx-auto px-4 py-12">
@@ -105,16 +76,19 @@ export default function VendorStorefrontPage() {
     );
   }
 
-  // Error state for vendor
   if (vendorError || !vendor) {
     return (
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-7xl mx-auto space-y-6">
-          <Button variant="ghost" onClick={() => navigate({ to: "/vendors" })}>
+          <Button
+            variant="ghost"
+            onClick={() => navigate({ to: "/vendors" })}
+            data-ocid="storefront.back_button"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Vendors
           </Button>
-          <Alert variant="destructive">
+          <Alert variant="destructive" data-ocid="storefront.error_state">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {vendorError
@@ -130,7 +104,11 @@ export default function VendorStorefrontPage() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-7xl mx-auto space-y-8">
-        <Button variant="ghost" onClick={() => navigate({ to: "/vendors" })}>
+        <Button
+          variant="ghost"
+          onClick={() => navigate({ to: "/vendors" })}
+          data-ocid="storefront.back_button"
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Vendors
         </Button>
@@ -164,9 +142,11 @@ export default function VendorStorefrontPage() {
             <h2 className="text-2xl font-bold">Products</h2>
           </div>
 
-          {/* Products Error State */}
           {productsError && (
-            <Alert variant="destructive">
+            <Alert
+              variant="destructive"
+              data-ocid="storefront.products.error_state"
+            >
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 Failed to load products. Please try again later.
@@ -174,7 +154,6 @@ export default function VendorStorefrontPage() {
             </Alert>
           )}
 
-          {/* Products Loading State */}
           {productsLoading && (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3].map((i) => (
@@ -192,12 +171,10 @@ export default function VendorStorefrontPage() {
             </div>
           )}
 
-          {/* Products Empty State */}
           {!productsLoading &&
             !productsError &&
-            products &&
-            products.length === 0 && (
-              <Card>
+            (!products || products.length === 0) && (
+              <Card data-ocid="storefront.products.empty_state">
                 <CardContent className="py-12 text-center">
                   <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-lg font-medium mb-2">
@@ -210,17 +187,20 @@ export default function VendorStorefrontPage() {
               </Card>
             )}
 
-          {/* Products Grid */}
           {!productsLoading &&
             !productsError &&
             products &&
             products.length > 0 && (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map((product) => (
+              <div
+                className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                data-ocid="storefront.products.list"
+              >
+                {products.map((product, idx) => (
                   <Card
                     key={product.id.toString()}
                     className="hover:shadow-lg transition-shadow cursor-pointer"
                     onClick={() => handleProductClick(product.id)}
+                    data-ocid={`storefront.products.item.${idx + 1}`}
                   >
                     <CardHeader className="space-y-4">
                       <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
@@ -251,6 +231,7 @@ export default function VendorStorefrontPage() {
                       <Button
                         variant="outline"
                         className="w-full"
+                        data-ocid={`storefront.products.view_button.${idx + 1}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleProductClick(product.id);
