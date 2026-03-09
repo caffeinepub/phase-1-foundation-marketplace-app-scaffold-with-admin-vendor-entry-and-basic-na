@@ -20,6 +20,7 @@ import OrganizationsPage from "./pages/OrganizationsPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
 import PublicProductsPage from "./pages/PublicProductsPage";
 import RoleSelectPage from "./pages/RoleSelectPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import VendorLayoutPage from "./pages/VendorLayoutPage";
 import VendorOrdersPage from "./pages/VendorOrdersPage";
 import VendorProductsPage from "./pages/VendorProductsPage";
@@ -117,6 +118,16 @@ const adminRoute = createRoute({
   ),
 });
 
+const userProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  component: () => (
+    <RequireAuth>
+      <UserProfilePage />
+    </RequireAuth>
+  ),
+});
+
 const vendorRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/vendor",
@@ -178,6 +189,7 @@ const routeTree = rootRoute.addChildren([
   orderDetailRoute,
   roleSelectRoute,
   adminRoute,
+  userProfileRoute,
   vendorRoute.addChildren([
     vendorIndexRoute,
     vendorProfileRoute,

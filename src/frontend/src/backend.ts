@@ -198,6 +198,7 @@ export interface backendInterface {
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
     deleteOrganization(id: OrganizationId): Promise<void>;
+    deleteProduct(productId: ProductId): Promise<void>;
     getAdmins(): Promise<Array<Principal>>;
     getAllOrders(): Promise<Array<Order>>;
     getAllOrganizations(): Promise<Array<Organization>>;
@@ -445,6 +446,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteOrganization(arg0);
+            return result;
+        }
+    }
+    async deleteProduct(arg0: ProductId): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteProduct(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteProduct(arg0);
             return result;
         }
     }

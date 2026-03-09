@@ -113,6 +113,18 @@ export default function HeaderNav() {
                     <Link to="/orders">Orders</Link>
                   </Button>
 
+                  <Button
+                    variant={isActive("/profile") ? "secondary" : "ghost"}
+                    size="sm"
+                    asChild
+                    data-ocid="nav.profile.link"
+                  >
+                    <Link to="/profile">
+                      <User className="h-4 w-4 mr-2" />
+                      My Profile
+                    </Link>
+                  </Button>
+
                   {isAuthLoading ? (
                     <Button variant="ghost" size="sm" disabled>
                       <Shield className="h-4 w-4 mr-2 animate-pulse" />

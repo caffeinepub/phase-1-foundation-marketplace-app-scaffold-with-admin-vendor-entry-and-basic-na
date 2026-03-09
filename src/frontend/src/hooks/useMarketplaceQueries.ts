@@ -7,6 +7,7 @@ import type {
   Product,
   ProductId,
   UpgradeSummary,
+  UserProfile,
   UserProfileWithPrincipal,
   VendorId,
   VendorProfile,
@@ -251,6 +252,23 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({
         queryKey: ["product", variables.productId.toString()],
       });
+    },
+  });
+}
+
+// Delete product (permanent)
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (productId: ProductId) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.deleteProduct(productId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["callerProducts"] });
+      queryClient.invalidateQueries({ queryKey: ["publishedProducts"] });
     },
   });
 }
@@ -564,6 +582,8 @@ export function usePlaceOrder() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       queryClient.invalidateQueries({ queryKey: ["callerOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["allOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["totalOrderCount"] });
     },
   });
 }
@@ -648,6 +668,8 @@ export function useVendorOrders() {
 }
 
 // Orders: Update order status (admin only)
+// Invalidates all order-related caches so buyers, vendors, and admins
+// all see the updated status immediately without a manual refresh.
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
   const { actor } = useActor();
@@ -660,8 +682,51 @@ export function useUpdateOrderStatus() {
       if (!actor) throw new Error("Actor not initialized");
       return actor.updateOrderStatus(orderId, newStatus);
     },
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
+      // Invalidate the specific order detail (buyer's order detail page)
+      queryClient.invalidateQueries({
+        queryKey: ["order", variables.orderId.toString()],
+      });
+      // Invalidate buyer's order list
+      queryClient.invalidateQueries({ queryKey: ["callerOrders"] });
+      // Invalidate vendor's order view
+      queryClient.invalidateQueries({ queryKey: ["vendorOrders"] });
+      // Invalidate admin's full order list
       queryClient.invalidateQueries({ queryKey: ["allOrders"] });
+    },
+  });
+}
+
+// User: Get caller's own profile
+export function useCallerUserProfile() {
+  const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
+
+  return useQuery<UserProfile | null>({
+    queryKey: ["callerUserProfile"],
+    queryFn: async () => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.getCallerUserProfile();
+    },
+    enabled: !!actor && !isFetching && !!identity,
+    retry: false,
+  });
+}
+
+// User: Save/update caller's own profile
+export function useSaveCallerUserProfile() {
+  const queryClient = useQueryClient();
+  const { actor } = useActor();
+
+  return useMutation({
+    mutationFn: async (profile: UserProfile) => {
+      if (!actor) throw new Error("Actor not initialized");
+      return actor.saveCallerUserProfile(profile);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["callerUserProfile"] });
+      queryClient.invalidateQueries({ queryKey: ["allUserProfiles"] });
+      queryClient.invalidateQueries({ queryKey: ["totalUserCount"] });
     },
   });
 }

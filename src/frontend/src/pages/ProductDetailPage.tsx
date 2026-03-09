@@ -177,6 +177,19 @@ export default function ProductDetailPage() {
                       Vendor ID: {vendorProfile.id.toString()}
                     </p>
                   </div>
+                  <Button
+                    data-ocid="product_detail.visit_storefront.button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      navigate({
+                        to: "/vendors/$vendorId",
+                        params: { vendorId: vendorProfile.id.toString() },
+                      })
+                    }
+                  >
+                    Visit Storefront
+                  </Button>
                 </div>
               ) : (
                 <div className="p-4 border rounded-lg">

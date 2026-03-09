@@ -8,8 +8,8 @@ import Time "mo:core/Time";
 import Auth "authorization/access-control";
 import Map "mo:core/Map";
 import MixinAuthorization "authorization/MixinAuthorization";
-import Migration "migration";
-(with migration = Migration.run)
+
+
 actor {
   type Env = {
     #dev;
@@ -577,6 +577,19 @@ actor {
     };
   };
 
+  // New deleteProduct method
+  public shared ({ caller }) func deleteProduct(productId : ProductId) : async () {
+    switch (products.get(productId)) {
+      case (null) { Runtime.trap("Product not found") };
+      case (?existingProduct) {
+        if (existingProduct.ownerPrincipal != caller and not isAppOwnerOrAdmin(caller)) {
+          Runtime.trap("Unauthorized: Only product owner or admin can delete the product");
+        };
+        products.remove(productId);
+      };
+    };
+  };
+
   public query ({ caller }) func getUpgradeSummary() : async UpgradeSummary {
     if (not isAppOwnerOrAdmin(caller)) {
       Runtime.trap("Unauthorized: Only admins can access upgrade summary");
@@ -947,3 +960,4 @@ actor {
     };
   };
 };
+

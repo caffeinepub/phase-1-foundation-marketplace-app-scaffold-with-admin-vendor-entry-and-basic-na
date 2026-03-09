@@ -9,7 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle, CheckCircle, Loader2, Shield, User } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Shield,
+  ShoppingBag,
+  User,
+} from "lucide-react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useHasAdmin,
@@ -34,9 +41,11 @@ export default function RoleSelectPage() {
   // (bootstrap scenario — RequireAdmin will let them through to claim)
   const canNavigateToAdmin = isAuthorized || hasAdmin === false;
 
-  const handleRoleSelect = (role: "admin" | "vendor") => {
+  const handleRoleSelect = (role: "admin" | "vendor" | "buyer") => {
     setRoleMode(role);
-    navigate({ to: role === "admin" ? "/admin" : "/vendor" });
+    if (role === "admin") navigate({ to: "/admin" });
+    else if (role === "vendor") navigate({ to: "/vendor" });
+    else navigate({ to: "/products" });
   };
 
   if (!identity) {
@@ -53,7 +62,7 @@ export default function RoleSelectPage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6">
           <Card
             data-ocid="role_select.admin.card"
             className={`transition-colors ${canNavigateToAdmin || isAuthLoading ? "hover:border-primary cursor-pointer" : "opacity-60"}`}
@@ -179,6 +188,7 @@ export default function RoleSelectPage() {
           </Card>
 
           <Card
+            data-ocid="role_select.vendor.card"
             className="hover:border-primary transition-colors cursor-pointer"
             onClick={() => handleRoleSelect("vendor")}
           >
@@ -193,9 +203,13 @@ export default function RoleSelectPage() {
             </CardHeader>
             <CardContent>
               <Button
+                data-ocid="role_select.vendor.button"
                 className="w-full"
                 size="lg"
-                onClick={() => handleRoleSelect("vendor")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRoleSelect("vendor");
+                }}
               >
                 Continue as Vendor
               </Button>
@@ -205,6 +219,43 @@ export default function RoleSelectPage() {
                   <li>Product listing management</li>
                   <li>Order processing</li>
                   <li>Sales analytics</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            data-ocid="role_select.buyer.card"
+            className="hover:border-primary transition-colors cursor-pointer"
+            onClick={() => handleRoleSelect("buyer")}
+          >
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <ShoppingBag className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Buyer</CardTitle>
+              <CardDescription>
+                Browse products, add to cart, and manage your orders
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                data-ocid="role_select.buyer.button"
+                className="w-full"
+                size="lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRoleSelect("buyer");
+                }}
+              >
+                Browse as Buyer
+              </Button>
+              <div className="mt-4 text-sm text-muted-foreground space-y-1">
+                <p className="font-medium">Buyer capabilities:</p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Browse all products</li>
+                  <li>Add to cart and checkout</li>
+                  <li>View order history</li>
                 </ul>
               </div>
             </CardContent>

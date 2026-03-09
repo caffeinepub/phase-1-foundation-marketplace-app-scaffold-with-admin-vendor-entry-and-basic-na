@@ -32,6 +32,8 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+
+const PRODUCTS_PER_PAGE = 12;
 import { toast } from "sonner";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
@@ -48,6 +50,7 @@ export default function PublicProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [addingProductId, setAddingProductId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -74,6 +77,16 @@ export default function PublicProductsPage() {
       return matchesSearch && matchesCategory;
     });
   }, [products, searchQuery, selectedCategory]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
+  );
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedProducts = filteredProducts.slice(
+    (safePage - 1) * PRODUCTS_PER_PAGE,
+    safePage * PRODUCTS_PER_PAGE,
+  );
 
   const formatPrice = (price: bigint, currency: string) => {
     const priceNum = Number(price) / 100; // Assuming price is in cents
@@ -123,11 +136,20 @@ export default function PublicProductsPage() {
             <Input
               placeholder="Search products..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="pl-10"
             />
           </div>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <Select
+            value={selectedCategory}
+            onValueChange={(v) => {
+              setSelectedCategory(v);
+              setCurrentPage(1);
+            }}
+          >
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
@@ -189,7 +211,7 @@ export default function PublicProductsPage() {
         {!isLoading && !error && filteredProducts.length > 0 && (
           <TooltipProvider>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product, index) => {
+              {paginatedProducts.map((product, index) => {
                 const isAdding = addingProductId === product.id.toString();
                 return (
                   <article
@@ -233,6 +255,15 @@ export default function PublicProductsPage() {
                             </Badge>
                           )}
                         </div>
+                        <Button
+                          data-ocid={`products.view_details.button.${index + 1}`}
+                          variant="outline"
+                          className="w-full gap-2"
+                          size="sm"
+                          onClick={() => handleProductClick(product.id)}
+                        >
+                          View Details
+                        </Button>
                         {identity ? (
                           <Button
                             data-ocid={`products.add_to_cart.button.${index + 1}`}
@@ -274,6 +305,35 @@ export default function PublicProductsPage() {
                 );
               })}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 pt-4">
+                <Button
+                  data-ocid="products.pagination_prev"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {safePage} of {totalPages}
+                </span>
+                <Button
+                  data-ocid="products.pagination_next"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={safePage >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </TooltipProvider>
         )}
       </div>

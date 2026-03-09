@@ -14,6 +14,8 @@ import { Building2, Search, Users } from "lucide-react";
 import { useState } from "react";
 import { useOrganizations } from "../hooks/useOrganizations";
 
+const ORGS_PER_PAGE = 9;
+
 function OrganizationCardSkeleton() {
   return (
     <Card>
@@ -39,12 +41,20 @@ export default function OrganizationsPage() {
   const navigate = useNavigate();
   const { data: organizations = [], isLoading } = useOrganizations();
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filtered = searchQuery.trim()
     ? organizations.filter((o) =>
         o.name.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : organizations;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ORGS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedOrgs = filtered.slice(
+    (safePage - 1) * ORGS_PER_PAGE,
+    safePage * ORGS_PER_PAGE,
+  );
 
   const handleOrgClick = (orgId: string) => {
     navigate({ to: "/organizations/$orgId", params: { orgId } });
@@ -90,7 +100,10 @@ export default function OrganizationsPage() {
               data-ocid="organizations.search_input"
               placeholder="Search organizations..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="pl-9"
             />
           </div>
@@ -145,12 +158,12 @@ export default function OrganizationsPage() {
           )}
 
         {/* Organizations Grid */}
-        {!isLoading && filtered.length > 0 && (
+        {!isLoading && paginatedOrgs.length > 0 && (
           <div
             data-ocid="organizations.list"
             className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            {filtered.map((org, index) => (
+            {paginatedOrgs.map((org, index) => (
               <Card
                 key={org.id}
                 data-ocid={`organizations.item.${index + 1}`}
@@ -210,6 +223,33 @@ export default function OrganizationsPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button
+              data-ocid="organizations.pagination_prev"
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {safePage} of {totalPages}
+            </span>
+            <Button
+              data-ocid="organizations.pagination_next"
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+            >
+              Next
+            </Button>
           </div>
         )}
 

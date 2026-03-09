@@ -115,6 +115,7 @@ export interface backendInterface {
     createProduct(title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<ProductId>;
     createVendorProfile(companyName: string, logoUrl: string): Promise<VendorId>;
     deleteOrganization(id: OrganizationId): Promise<void>;
+    deleteProduct(productId: ProductId): Promise<void>;
     getAdmins(): Promise<Array<Principal>>;
     getAllOrders(): Promise<Array<Order>>;
     getAllOrganizations(): Promise<Array<Organization>>;

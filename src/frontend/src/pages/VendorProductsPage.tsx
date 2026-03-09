@@ -1,4 +1,15 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,16 +28,73 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Edit, Package, Plus } from "lucide-react";
+import {
+  AlertCircle,
+  Edit,
+  Loader2,
+  Package,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { Product } from "../backend";
 import VendorProductForm from "../components/vendor/VendorProductForm";
-import { useCallerProducts } from "../hooks/useMarketplaceQueries";
+import {
+  useCallerProducts,
+  useDeleteProduct,
+  useUpdateProduct,
+} from "../hooks/useMarketplaceQueries";
 
 export default function VendorProductsPage() {
   const { data: products, isLoading, error } = useCallerProducts();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const updateProductMutation = useUpdateProduct();
+  const deleteProductMutation = useDeleteProduct();
+  const [removingProductId, setRemovingProductId] = useState<bigint | null>(
+    null,
+  );
+  const [deletingProductId, setDeletingProductId] = useState<bigint | null>(
+    null,
+  );
+
+  const handleRemoveFromStore = async (product: Product) => {
+    setRemovingProductId(product.id);
+    try {
+      await updateProductMutation.mutateAsync({
+        productId: product.id,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        currency: product.currency,
+        imageUrl: product.imageUrl,
+        category: product.category,
+        isPublished: false,
+      });
+      toast.success("Product removed from store");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to remove product";
+      toast.error(msg);
+    } finally {
+      setRemovingProductId(null);
+    }
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    setDeletingProductId(product.id);
+    try {
+      await deleteProductMutation.mutateAsync(product.id);
+      toast.success("Product deleted");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to delete product";
+      toast.error(msg);
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
 
   const formatPrice = (price: bigint, currency: string) => {
     const priceNum = Number(price) / 100;
@@ -139,6 +207,7 @@ export default function VendorProductsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setEditingProduct(product)}
+                          data-ocid="vendor.product.edit_button"
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
@@ -157,6 +226,95 @@ export default function VendorProductsPage() {
                         />
                       </DialogContent>
                     </Dialog>
+
+                    {product.isPublished && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={removingProductId === product.id}
+                            data-ocid="vendor.product.delete_button"
+                          >
+                            {removingProductId === product.id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 mr-2" />
+                            )}
+                            {removingProductId === product.id
+                              ? "Removing…"
+                              : "Remove"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent data-ocid="vendor.product.remove.dialog">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Remove from store?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Remove this product from the store? It will become
+                              a draft and no longer be publicly visible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel data-ocid="vendor.product.remove.cancel_button">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              data-ocid="vendor.product.remove.confirm_button"
+                              onClick={() => handleRemoveFromStore(product)}
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    {!product.isPublished && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={deletingProductId === product.id}
+                            data-ocid="vendor.product.delete_button"
+                            className="text-destructive hover:text-destructive border-destructive/30 hover:border-destructive"
+                          >
+                            {deletingProductId === product.id ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 mr-2" />
+                            )}
+                            {deletingProductId === product.id
+                              ? "Deleting…"
+                              : "Delete"}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent data-ocid="vendor.product.delete.dialog">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Permanently delete this product?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This cannot be undone. The product will be
+                              permanently removed from the marketplace.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel data-ocid="vendor.product.delete.cancel_button">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              data-ocid="vendor.product.delete.confirm_button"
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => handleDeleteProduct(product)}
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               </CardHeader>

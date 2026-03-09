@@ -108,6 +108,7 @@ export interface _SERVICE {
   >,
   'createVendorProfile' : ActorMethod<[string, string], VendorId>,
   'deleteOrganization' : ActorMethod<[OrganizationId], undefined>,
+  'deleteProduct' : ActorMethod<[ProductId], undefined>,
   'getAdmins' : ActorMethod<[], Array<Principal>>,
   'getAllOrders' : ActorMethod<[], Array<Order>>,
   'getAllOrganizations' : ActorMethod<[], Array<Organization>>,

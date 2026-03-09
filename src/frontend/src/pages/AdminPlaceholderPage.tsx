@@ -41,6 +41,7 @@ import {
   Info,
   Pencil,
   Plus,
+  Search,
   Shield,
   ShoppingBag,
   Store,
@@ -187,6 +188,12 @@ export default function AdminPlaceholderPage() {
   const [orderStatusErrors, setOrderStatusErrors] = useState<
     Record<string, string>
   >({});
+
+  // Orders search/filter state
+  const [orderSearchQuery, setOrderSearchQuery] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
+  const [orderCurrentPage, setOrderCurrentPage] = useState(1);
+  const ORDERS_PER_PAGE = 10;
 
   const handleUpdateOrderStatus = async (
     orderId: bigint,
@@ -420,6 +427,108 @@ export default function AdminPlaceholderPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Stats Strip */}
+        <div
+          data-ocid="admin.stats.panel"
+          className="grid grid-cols-2 md:grid-cols-5 gap-4"
+        >
+          {/* Vendors stat */}
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              {summaryLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-primary">
+                    {upgradeSummary?.vendorCount?.toString() ?? "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+                    Vendors
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Products stat */}
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              {summaryLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-primary">
+                    {upgradeSummary?.productCount?.toString() ?? "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+                    Products
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Users stat */}
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              {totalUserCount === undefined ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-3 w-10" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-primary">
+                    {totalUserCount.toString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+                    Users
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Orders stat */}
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              {totalOrderCount === undefined ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-3 w-12" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-primary">
+                    {totalOrderCount.toString()}
+                  </p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+                    Orders
+                  </p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Organizations stat */}
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              <>
+                <p className="text-2xl font-bold text-primary">{totalOrgs}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mt-1">
+                  Orgs
+                </p>
+              </>
+            </CardContent>
+          </Card>
         </div>
 
         {verifyError && (
@@ -1321,131 +1430,253 @@ export default function AdminPlaceholderPage() {
               </Alert>
             ) : allOrders && allOrders.length > 0 ? (
               <div className="space-y-3">
-                {allOrders
-                  .slice()
-                  .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
-                  .map((order, index) => {
-                    const orderKey = order.id.toString();
-                    const currentStatus = order.status as string;
-                    const statusConfig = getOrderStatusConfig(currentStatus);
-                    const buyerStr = order.buyer.toString();
-                    const shortBuyer = `${buyerStr.slice(0, 8)}...${buyerStr.slice(-6)}`;
-                    const selectedStatus =
-                      orderStatusSelections[orderKey] ?? currentStatus;
-                    const hasChanged = selectedStatus !== currentStatus;
-                    const rowError = orderStatusErrors[orderKey];
-                    const isUpdating =
-                      updateOrderStatusMutation.isPending &&
-                      updateOrderStatusMutation.variables?.orderId.toString() ===
-                        orderKey;
-
+                {/* Search and filter controls */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <input
+                      data-ocid="admin.orders.search_input"
+                      type="text"
+                      placeholder="Search by order # or buyer..."
+                      value={orderSearchQuery}
+                      onChange={(e) => {
+                        setOrderSearchQuery(e.target.value);
+                        setOrderCurrentPage(1);
+                      }}
+                      className="w-full pl-9 pr-3 h-9 text-sm rounded-md border border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <Select
+                    value={orderStatusFilter}
+                    onValueChange={(v) => {
+                      setOrderStatusFilter(v);
+                      setOrderCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger
+                      data-ocid="admin.orders.status_filter.select"
+                      className="h-9 w-full sm:w-[160px] text-sm"
+                    >
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value={OrderStatus.pending}>
+                        Pending
+                      </SelectItem>
+                      <SelectItem value={OrderStatus.confirmed}>
+                        Confirmed
+                      </SelectItem>
+                      <SelectItem value={OrderStatus.shipped}>
+                        Shipped
+                      </SelectItem>
+                      <SelectItem value={OrderStatus.delivered}>
+                        Delivered
+                      </SelectItem>
+                      <SelectItem value={OrderStatus.cancelled}>
+                        Cancelled
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(() => {
+                  const filtered = allOrders
+                    .slice()
+                    .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
+                    .filter((order) => {
+                      const q = orderSearchQuery.trim().toLowerCase();
+                      const matchesSearch =
+                        !q ||
+                        order.id.toString().includes(q) ||
+                        order.buyer.toString().toLowerCase().includes(q);
+                      const matchesStatus =
+                        orderStatusFilter === "all" ||
+                        (order.status as string) === orderStatusFilter;
+                      return matchesSearch && matchesStatus;
+                    });
+                  if (filtered.length === 0) {
                     return (
                       <div
-                        key={orderKey}
-                        data-ocid={`admin.orders.item.${index + 1}`}
-                        className="p-4 border rounded-lg space-y-3"
+                        data-ocid="admin.orders.empty_state"
+                        className="py-8 text-center text-sm text-muted-foreground"
                       >
-                        {/* Top row: order info + price */}
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="space-y-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-mono text-muted-foreground">
-                                #{orderKey}
-                              </span>
-                              <Badge
-                                variant="outline"
-                                className={statusConfig.className}
-                              >
-                                {statusConfig.label}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground font-mono truncate">
-                              Buyer: {shortBuyer}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(
-                                Number(order.createdAt) / 1_000_000,
-                              ).toLocaleDateString()}
-                              {" · "}
-                              {order.items.length} item
-                              {order.items.length !== 1 ? "s" : ""}
-                            </p>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-semibold text-primary">
-                              {formatAdminPrice(
-                                order.totalAmount,
-                                order.currency,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Status update controls */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Select
-                            value={selectedStatus}
-                            onValueChange={(value) =>
-                              setOrderStatusSelections((prev) => ({
-                                ...prev,
-                                [orderKey]: value,
-                              }))
-                            }
-                            disabled={isUpdating}
-                          >
-                            <SelectTrigger
-                              data-ocid={`admin.orders.status_select.${index + 1}`}
-                              className="h-8 w-[140px] text-xs"
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={OrderStatus.pending}>
-                                Pending
-                              </SelectItem>
-                              <SelectItem value={OrderStatus.confirmed}>
-                                Confirmed
-                              </SelectItem>
-                              <SelectItem value={OrderStatus.shipped}>
-                                Shipped
-                              </SelectItem>
-                              <SelectItem value={OrderStatus.delivered}>
-                                Delivered
-                              </SelectItem>
-                              <SelectItem value={OrderStatus.cancelled}>
-                                Cancelled
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            data-ocid={`admin.orders.update_status.button.${index + 1}`}
-                            size="sm"
-                            variant={hasChanged ? "default" : "outline"}
-                            disabled={!hasChanged || isUpdating}
-                            onClick={() =>
-                              handleUpdateOrderStatus(
-                                order.id,
-                                selectedStatus as OrderStatus,
-                              )
-                            }
-                            className="h-8 text-xs px-3"
-                          >
-                            {isUpdating ? "Updating…" : "Update"}
-                          </Button>
-                        </div>
-
-                        {/* Inline error */}
-                        {rowError && (
-                          <p
-                            data-ocid="admin.orders.error_state"
-                            className="text-xs text-destructive"
-                          >
-                            {rowError}
-                          </p>
-                        )}
+                        No orders match your search.
                       </div>
                     );
-                  })}
+                  }
+                  const totalOrderPages = Math.max(
+                    1,
+                    Math.ceil(filtered.length / ORDERS_PER_PAGE),
+                  );
+                  const safeOrderPage = Math.min(
+                    orderCurrentPage,
+                    totalOrderPages,
+                  );
+                  const paginated = filtered.slice(
+                    (safeOrderPage - 1) * ORDERS_PER_PAGE,
+                    safeOrderPage * ORDERS_PER_PAGE,
+                  );
+                  return (
+                    <>
+                      {paginated.map((order, index) => {
+                        const orderKey = order.id.toString();
+                        const currentStatus = order.status as string;
+                        const statusConfig =
+                          getOrderStatusConfig(currentStatus);
+                        const buyerStr = order.buyer.toString();
+                        const shortBuyer = `${buyerStr.slice(0, 8)}...${buyerStr.slice(-6)}`;
+                        const selectedStatus =
+                          orderStatusSelections[orderKey] ?? currentStatus;
+                        const hasChanged = selectedStatus !== currentStatus;
+                        const rowError = orderStatusErrors[orderKey];
+                        const isUpdating =
+                          updateOrderStatusMutation.isPending &&
+                          updateOrderStatusMutation.variables?.orderId.toString() ===
+                            orderKey;
+
+                        return (
+                          <div
+                            key={orderKey}
+                            data-ocid={`admin.orders.item.${index + 1}`}
+                            className="p-4 border rounded-lg space-y-3"
+                          >
+                            {/* Top row: order info + price */}
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-mono text-muted-foreground">
+                                    #{orderKey}
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className={statusConfig.className}
+                                  >
+                                    {statusConfig.label}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground font-mono truncate">
+                                  Buyer: {shortBuyer}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    Number(order.createdAt) / 1_000_000,
+                                  ).toLocaleDateString()}
+                                  {" · "}
+                                  {order.items.length} item
+                                  {order.items.length !== 1 ? "s" : ""}
+                                </p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="font-semibold text-primary">
+                                  {formatAdminPrice(
+                                    order.totalAmount,
+                                    order.currency,
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Status update controls */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Select
+                                value={selectedStatus}
+                                onValueChange={(value) =>
+                                  setOrderStatusSelections((prev) => ({
+                                    ...prev,
+                                    [orderKey]: value,
+                                  }))
+                                }
+                                disabled={isUpdating}
+                              >
+                                <SelectTrigger
+                                  data-ocid={`admin.orders.status_select.${index + 1}`}
+                                  className="h-8 w-[140px] text-xs"
+                                >
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={OrderStatus.pending}>
+                                    Pending
+                                  </SelectItem>
+                                  <SelectItem value={OrderStatus.confirmed}>
+                                    Confirmed
+                                  </SelectItem>
+                                  <SelectItem value={OrderStatus.shipped}>
+                                    Shipped
+                                  </SelectItem>
+                                  <SelectItem value={OrderStatus.delivered}>
+                                    Delivered
+                                  </SelectItem>
+                                  <SelectItem value={OrderStatus.cancelled}>
+                                    Cancelled
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                data-ocid={`admin.orders.update_status.button.${index + 1}`}
+                                size="sm"
+                                variant={hasChanged ? "default" : "outline"}
+                                disabled={!hasChanged || isUpdating}
+                                onClick={() =>
+                                  handleUpdateOrderStatus(
+                                    order.id,
+                                    selectedStatus as OrderStatus,
+                                  )
+                                }
+                                className="h-8 text-xs px-3"
+                              >
+                                {isUpdating ? "Updating…" : "Update"}
+                              </Button>
+                            </div>
+
+                            {/* Inline error */}
+                            {rowError && (
+                              <p
+                                data-ocid="admin.orders.error_state"
+                                className="text-xs text-destructive"
+                              >
+                                {rowError}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Pagination */}
+                      {totalOrderPages > 1 && (
+                        <div className="flex items-center justify-center gap-3 pt-2">
+                          <Button
+                            data-ocid="admin.orders.pagination_prev"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setOrderCurrentPage((p) => Math.max(1, p - 1))
+                            }
+                            disabled={safeOrderPage <= 1}
+                          >
+                            Previous
+                          </Button>
+                          <span className="text-sm text-muted-foreground">
+                            Page {safeOrderPage} of {totalOrderPages}
+                          </span>
+                          <Button
+                            data-ocid="admin.orders.pagination_next"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              setOrderCurrentPage((p) =>
+                                Math.min(totalOrderPages, p + 1),
+                              )
+                            }
+                            disabled={safeOrderPage >= totalOrderPages}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             ) : (
               <div
