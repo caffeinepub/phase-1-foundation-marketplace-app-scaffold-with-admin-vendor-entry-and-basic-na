@@ -1,0 +1,203 @@
+// Version: 3.0.0
+type CartItem__113002840 = {productId : ProductId__779996770; quantity : Nat};
+type Data__791452850<K, V> =
+  {var count : Nat__490723111; kvs : [var ?(K, V)]};
+type Internal__8484328<K, V> =
+  {children : [var ?Node__46230540<K, V>]; data : Data__791452850<K, V>};
+type Leaf__809889148<K, V> = {data : Data__791452850<K, V>};
+type Map__158565046<K, V> = Map__297112838<K, V>;
+type Map__297112838<K, V> =
+  {var root : Node__46230540<K, V>; var size : Nat__490723111};
+type Map__605269027<K, V> = Map__158565046<K, V>;
+type Money__609877681 = Nat;
+type Name__114460643 = Text;
+type Nat__490723111 = Nat__920180692;
+type Nat__920180692 = Nat;
+type Node__46230540<K, V> =
+  {#internal : Internal__8484328<K, V>; #leaf : Leaf__809889148<K, V>};
+type OrderId__81195289 = Nat;
+type OrderItem__592186033 =
+  {
+    currency : Text;
+    price : Money__609877681;
+    productId : ProductId__779996770;
+    quantity : Nat;
+    title : Text
+  };
+type OrderStatus__838108808 =
+  {#cancelled; #confirmed; #delivered; #pending; #shipped};
+type Order__762448211 =
+  {
+    buyer : Principal;
+    createdAt : Timestamp__672038077;
+    currency : Text;
+    id : OrderId__81195289;
+    items : [OrderItem__592186033];
+    status : OrderStatus__838108808;
+    totalAmount : Money__609877681;
+    updatedAt : Timestamp__672038077
+  };
+type OrganizationId__847342729 = Nat;
+type Organization__103960640 =
+  {
+    adminPrincipal : Principal;
+    createdAt : Timestamp__672038077;
+    description : Text;
+    id : OrganizationId__847342729;
+    logoUrl : Text;
+    name : Text;
+    vendorIds : [VendorId__17435348]
+  };
+type ProductCurrency__1023785029 = Text;
+type ProductId__779996770 = Nat;
+type Product__853085059 =
+  {
+    category : Text;
+    createdAt : Timestamp__672038077;
+    currency : ProductCurrency__1023785029;
+    description : Text;
+    id : ProductId__779996770;
+    imageUrl : Text;
+    isPublished : Bool;
+    ownerPrincipal : Principal;
+    price : Money__609877681;
+    title : Text;
+    updatedAt : Timestamp__672038077
+  };
+type Timestamp__672038077 = Int;
+type Url__821192406 = Text;
+type UserProfile__491224006 = {name : Text};
+type UserRole__717262347 = {#admin; #guest; #user};
+type VendorId__17435348 = Nat;
+type VendorProfile__459889250 =
+  {
+    companyName : Name__114460643;
+    id : VendorId__17435348;
+    isVerified : Bool;
+    logoUrl : Url__821192406;
+    user : Principal
+  };
+actor ({
+  in var accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__605269027<Principal, UserRole__717262347>
+    };
+  stable var adminAllowlist :
+    {var root : Node__46230540<Principal, Bool>; var size : Nat__490723111};
+  stable var appOwner : ?Principal;
+  stable var carts :
+    {
+      var root : Node__46230540<Principal, [CartItem__113002840]>;
+      var size : Nat__490723111
+    };
+  stable var environment : {#dev; #prod};
+  stable var lastOrderId : Nat;
+  stable var lastOrgId : Nat;
+  stable var lastProductId : Nat;
+  stable var lastVendorId : Nat;
+  stable oneDayInNanos : Nat;
+  stable var orders :
+    {
+      var root : Node__46230540<Nat, Order__762448211>;
+      var size : Nat__490723111
+    };
+  stable var organizations :
+    {
+      var root : Node__46230540<Nat, Organization__103960640>;
+      var size : Nat__490723111
+    };
+  stable var products :
+    {
+      var root : Node__46230540<Nat, Product__853085059>;
+      var size : Nat__490723111
+    };
+  stable var stableAdminAllowlist : [(Principal, Bool)];
+  stable var stableAppOwner : ?Principal;
+  stable var stableCarts : [(Principal, [CartItem__113002840])];
+  stable var stableLastOrderId : Nat;
+  stable var stableLastOrgId : Nat;
+  stable var stableLastProductId : Nat;
+  stable var stableLastVendorId : Nat;
+  stable var stableOrders : [(Nat, Order__762448211)];
+  stable var stableOrganizations : [(Nat, Organization__103960640)];
+  stable var stableProducts : [(Nat, Product__853085059)];
+  stable var stableSuspendedVendors : [(VendorId__17435348, Bool)];
+  stable var stableUserProfiles : [(Principal, UserProfile__491224006)];
+  stable var stableVendors : [(Nat, VendorProfile__459889250)];
+  stable var suspendedVendors :
+    {
+      var root : Node__46230540<VendorId__17435348, Bool>;
+      var size : Nat__490723111
+    };
+  stable var userProfiles :
+    {
+      var root : Node__46230540<Principal, UserProfile__491224006>;
+      var size : Nat__490723111
+    };
+  stable var vendors :
+    {
+      var root : Node__46230540<VendorId__17435348, VendorProfile__459889250>;
+      var size : Nat__490723111
+    };
+  stable var version : Text
+}, {
+  stable var adminAllowlist :
+    {var root : Node__46230540<Principal, Bool>; var size : Nat__490723111};
+  stable var appOwner : ?Principal;
+  stable var carts :
+    {
+      var root : Node__46230540<Principal, [CartItem__113002840]>;
+      var size : Nat__490723111
+    };
+  stable var environment : {#dev; #prod};
+  stable var lastOrderId : Nat;
+  stable var lastOrgId : Nat;
+  stable var lastProductId : Nat;
+  stable var lastVendorId : Nat;
+  stable oneDayInNanos : Nat;
+  stable var orders :
+    {
+      var root : Node__46230540<Nat, Order__762448211>;
+      var size : Nat__490723111
+    };
+  stable var organizations :
+    {
+      var root : Node__46230540<Nat, Organization__103960640>;
+      var size : Nat__490723111
+    };
+  stable var products :
+    {
+      var root : Node__46230540<Nat, Product__853085059>;
+      var size : Nat__490723111
+    };
+  stable var stableAdminAllowlist : [(Principal, Bool)];
+  stable var stableAppOwner : ?Principal;
+  stable var stableCarts : [(Principal, [CartItem__113002840])];
+  stable var stableLastOrderId : Nat;
+  stable var stableLastOrgId : Nat;
+  stable var stableLastProductId : Nat;
+  stable var stableLastVendorId : Nat;
+  stable var stableOrders : [(Nat, Order__762448211)];
+  stable var stableOrganizations : [(Nat, Organization__103960640)];
+  stable var stableProducts : [(Nat, Product__853085059)];
+  stable var stableSuspendedVendors : [(VendorId__17435348, Bool)];
+  stable var stableUserProfiles : [(Principal, UserProfile__491224006)];
+  stable var stableVendors : [(Nat, VendorProfile__459889250)];
+  stable var suspendedVendors :
+    {
+      var root : Node__46230540<VendorId__17435348, Bool>;
+      var size : Nat__490723111
+    };
+  stable var userProfiles :
+    {
+      var root : Node__46230540<Principal, UserProfile__491224006>;
+      var size : Nat__490723111
+    };
+  stable var vendors :
+    {
+      var root : Node__46230540<VendorId__17435348, VendorProfile__459889250>;
+      var size : Nat__490723111
+    };
+  stable var version : Text
+}) ;

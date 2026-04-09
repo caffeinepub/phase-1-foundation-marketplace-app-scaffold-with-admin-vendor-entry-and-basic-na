@@ -1,0 +1,172 @@
+type Version = text;
+type VendorProfile = 
+ record {
+   companyName: Name;
+   id: VendorId;
+   isVerified: bool;
+   logoUrl: Url;
+   user: principal;
+ };
+type VendorId = nat;
+type UserProfileWithPrincipal = 
+ record {
+   "principal": principal;
+   profile: UserProfile;
+ };
+type UserProfile = record {name: text;};
+type Url = text;
+type UpgradeSummary = 
+ record {
+   lastProductId: nat;
+   lastVendorId: nat;
+   productCount: nat;
+   vendorCount: nat;
+   version: nat;
+ };
+type Timestamp = int;
+type ProductId = nat;
+type ProductCurrency = text;
+type Product = 
+ record {
+   category: text;
+   createdAt: Timestamp;
+   currency: ProductCurrency;
+   description: text;
+   id: ProductId;
+   imageUrl: text;
+   isPublished: bool;
+   ownerPrincipal: principal;
+   price: Money;
+   title: text;
+   updatedAt: Timestamp;
+ };
+type OrganizationId = nat;
+type Organization = 
+ record {
+   adminPrincipal: principal;
+   createdAt: Timestamp;
+   description: text;
+   id: OrganizationId;
+   logoUrl: text;
+   name: text;
+   vendorIds: vec VendorId;
+ };
+type OrderStatus = 
+ variant {
+   cancelled;
+   confirmed;
+   delivered;
+   pending;
+   shipped;
+ };
+type OrderItem = 
+ record {
+   currency: text;
+   price: Money;
+   productId: ProductId;
+   quantity: nat;
+   title: text;
+ };
+type OrderId = nat;
+type Order = 
+ record {
+   buyer: principal;
+   createdAt: Timestamp;
+   currency: text;
+   id: OrderId;
+   items: vec OrderItem;
+   status: OrderStatus;
+   totalAmount: Money;
+   updatedAt: Timestamp;
+ };
+type Name = text;
+type Money = nat;
+type Env = 
+ variant {
+   dev;
+   prod;
+ };
+type CartItem = 
+ record {
+   productId: ProductId;
+   quantity: nat;
+ };
+type BackendMetadata = 
+ record {
+   environment: Env;
+   version: Version;
+ };
+service : {
+  addAdmin: (adminPrincipal: principal) -> ();
+  addToCart: (productId: ProductId, quantity: nat) -> ();
+  addVendorProfile: (profile: VendorProfile) -> ();
+  assignVendorToOrg: (orgId: OrganizationId, vendorId: VendorId) -> ();
+  bootstrapAdmins: (principals: vec principal) -> ();
+  bootstrapFirstAdmin: () -> ();
+  claimAppOwner: () -> ();
+  clearCart: () -> ();
+  createOrganization: (name: text, description: text, logoUrl: text) ->
+   (OrganizationId);
+  createProduct: (title: text, description: text, price: nat, currency: 
+   text, imageUrl: text, category: text, isPublished: bool) -> (ProductId);
+  createVendorProfile: (companyName: text, logoUrl: text) -> (VendorId);
+  deleteOrganization: (id: OrganizationId) -> ();
+  deleteProduct: (productId: ProductId) -> ();
+  getAdmins: () -> (vec principal) query;
+  getAllOrders: () -> (vec Order) query;
+  getAllOrganizations: () -> (vec Organization) query;
+  getAllUserProfiles: () -> (vec UserProfileWithPrincipal) query;
+  getAllVendorProfiles: () -> (vec VendorProfile) query;
+  getAppOwner: () -> (opt principal) query;
+  getBackendMetadata: () -> (BackendMetadata) query;
+  getCallerOrders: () -> (vec Order) query;
+  getCallerProducts: () -> (vec Product) query;
+  getCallerUserProfile: () -> (opt UserProfile) query;
+  getCallerVendorProfile: () -> (opt VendorProfile) query;
+  getCart: () -> (vec CartItem) query;
+  getOrderById: (orderId: OrderId) -> (opt Order) query;
+  getOrganization: (id: OrganizationId) -> (opt Organization) query;
+  getProductById: (productId: ProductId) -> (opt Product) query;
+  getPublishedProducts: () -> (vec Product) query;
+  getTotalOrderCount: () -> (nat) query;
+  getTotalUserCount: () -> (nat) query;
+  getTotalVendorCount: () -> (nat) query;
+  getUpgradeSummary: () -> (UpgradeSummary) query;
+  getUserProfile: (user: principal) -> (opt UserProfile) query;
+  getVendorOrders: () -> (vec Order) query;
+  getVendorOrganization: (vendorId: VendorId) -> (opt Organization) query;
+  getVendorProductsByPrincipal: (owner: principal) -> (vec Product) query;
+  getVendorProductsByVendorId: (vendorId: VendorId) -> (vec Product) query;
+  getVendorProfile: (vendorId: VendorId) -> (opt VendorProfile) query;
+  getVendorProfileByUser: (owner: principal) -> (opt VendorProfile) query;
+  getVerifiedVendorProfiles: () -> (vec VendorProfile) query;
+  hasAdmin: () -> (bool) query;
+  isAdmin: ("principal": principal) -> (bool) query;
+  isAdminInternal: ("principal": principal) -> (bool) query;
+  isCallerAppOwner: () -> (bool) query;
+  isVendorSuspended: (vendorId: VendorId) -> (bool) query;
+  listPublishedProductsByVendor: (vendorPrincipal: principal) ->
+   (vec Product) query;
+  listVerifiedVendors: () -> (vec VendorProfile) query;
+  ping: () -> (bool) query;
+  placeOrder: () -> (OrderId);
+  removeAdmin: (adminPrincipal: principal) -> ();
+  removeFromCart: (productId: ProductId) -> ();
+  removeVendorFromOrg: (orgId: OrganizationId, vendorId: VendorId) -> ();
+  saveCallerUserProfile: (profile: UserProfile) -> ();
+  setAdmins: (admins: vec principal) -> ();
+  suspendVendor: (vendorId: VendorId) -> ();
+  unsuspendVendor: (vendorId: VendorId) -> ();
+  unverifyVendor: (vendorId: VendorId) -> ();
+  updateOrderStatus: (orderId: OrderId, newStatus: OrderStatus) -> ();
+  updateOrganization: (id: OrganizationId, name: text, description: text,
+   logoUrl: text) -> ();
+  updateProduct: (productId: ProductId, title: text, description: text,
+   price: nat, currency: text, imageUrl: text, category: text, isPublished:
+   bool) -> ();
+  updateVendorProfile: (vendorId: VendorId, companyName: text, logoUrl:
+   text) -> ();
+  upsertCallerVendorProfile: (companyName: text, logoUrl: text) -> (VendorId);
+  verifyVendor: (vendorId: VendorId) -> ();
+  whoami: () -> (principal) query;
+}

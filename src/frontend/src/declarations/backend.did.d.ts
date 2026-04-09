@@ -78,9 +78,6 @@ export interface UserProfileWithPrincipal {
   'principal' : Principal,
   'profile' : UserProfile,
 }
-export type UserRole = { 'admin' : null } |
-  { 'user' : null } |
-  { 'guest' : null };
 export type VendorId = bigint;
 export interface VendorProfile {
   'id' : VendorId,
@@ -91,11 +88,9 @@ export interface VendorProfile {
 }
 export type Version = string;
 export interface _SERVICE {
-  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addAdmin' : ActorMethod<[Principal], undefined>,
   'addToCart' : ActorMethod<[ProductId, bigint], undefined>,
   'addVendorProfile' : ActorMethod<[VendorProfile], undefined>,
-  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'assignVendorToOrg' : ActorMethod<[OrganizationId, VendorId], undefined>,
   'bootstrapAdmins' : ActorMethod<[Array<Principal>], undefined>,
   'bootstrapFirstAdmin' : ActorMethod<[], undefined>,
@@ -119,7 +114,6 @@ export interface _SERVICE {
   'getCallerOrders' : ActorMethod<[], Array<Order>>,
   'getCallerProducts' : ActorMethod<[], Array<Product>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
-  'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCallerVendorProfile' : ActorMethod<[], [] | [VendorProfile]>,
   'getCart' : ActorMethod<[], Array<CartItem>>,
   'getOrderById' : ActorMethod<[OrderId], [] | [Order]>,
@@ -141,8 +135,8 @@ export interface _SERVICE {
   'hasAdmin' : ActorMethod<[], boolean>,
   'isAdmin' : ActorMethod<[Principal], boolean>,
   'isAdminInternal' : ActorMethod<[Principal], boolean>,
-  'isCallerAdmin' : ActorMethod<[], boolean>,
   'isCallerAppOwner' : ActorMethod<[], boolean>,
+  'isVendorSuspended' : ActorMethod<[VendorId], boolean>,
   'listPublishedProductsByVendor' : ActorMethod<[Principal], Array<Product>>,
   'listVerifiedVendors' : ActorMethod<[], Array<VendorProfile>>,
   'ping' : ActorMethod<[], boolean>,
@@ -152,6 +146,9 @@ export interface _SERVICE {
   'removeVendorFromOrg' : ActorMethod<[OrganizationId, VendorId], undefined>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
   'setAdmins' : ActorMethod<[Array<Principal>], undefined>,
+  'suspendVendor' : ActorMethod<[VendorId], undefined>,
+  'unsuspendVendor' : ActorMethod<[VendorId], undefined>,
+  'unverifyVendor' : ActorMethod<[VendorId], undefined>,
   'updateOrderStatus' : ActorMethod<[OrderId, OrderStatus], undefined>,
   'updateOrganization' : ActorMethod<
     [OrganizationId, string, string, string],

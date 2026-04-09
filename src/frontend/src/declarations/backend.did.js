@@ -19,11 +19,6 @@ export const VendorProfile = IDL.Record({
   'isVerified' : IDL.Bool,
   'companyName' : Name,
 });
-export const UserRole = IDL.Variant({
-  'admin' : IDL.Null,
-  'user' : IDL.Null,
-  'guest' : IDL.Null,
-});
 export const OrganizationId = IDL.Nat;
 export const OrderId = IDL.Nat;
 export const OrderStatus = IDL.Variant({
@@ -99,11 +94,9 @@ export const UpgradeSummary = IDL.Record({
 });
 
 export const idlService = IDL.Service({
-  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addAdmin' : IDL.Func([IDL.Principal], [], []),
   'addToCart' : IDL.Func([ProductId, IDL.Nat], [], []),
   'addVendorProfile' : IDL.Func([VendorProfile], [], []),
-  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'assignVendorToOrg' : IDL.Func([OrganizationId, VendorId], [], []),
   'bootstrapAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
   'bootstrapFirstAdmin' : IDL.Func([], [], []),
@@ -136,7 +129,6 @@ export const idlService = IDL.Service({
   'getCallerOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
   'getCallerProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCallerVendorProfile' : IDL.Func([], [IDL.Opt(VendorProfile)], ['query']),
   'getCart' : IDL.Func([], [IDL.Vec(CartItem)], ['query']),
   'getOrderById' : IDL.Func([OrderId], [IDL.Opt(Order)], ['query']),
@@ -190,8 +182,8 @@ export const idlService = IDL.Service({
   'hasAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
   'isAdminInternal' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
-  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'isCallerAppOwner' : IDL.Func([], [IDL.Bool], ['query']),
+  'isVendorSuspended' : IDL.Func([VendorId], [IDL.Bool], ['query']),
   'listPublishedProductsByVendor' : IDL.Func(
       [IDL.Principal],
       [IDL.Vec(Product)],
@@ -205,6 +197,9 @@ export const idlService = IDL.Service({
   'removeVendorFromOrg' : IDL.Func([OrganizationId, VendorId], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'setAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
+  'suspendVendor' : IDL.Func([VendorId], [], []),
+  'unsuspendVendor' : IDL.Func([VendorId], [], []),
+  'unverifyVendor' : IDL.Func([VendorId], [], []),
   'updateOrderStatus' : IDL.Func([OrderId, OrderStatus], [], []),
   'updateOrganization' : IDL.Func(
       [OrganizationId, IDL.Text, IDL.Text, IDL.Text],
@@ -244,11 +239,6 @@ export const idlFactory = ({ IDL }) => {
     'logoUrl' : Url,
     'isVerified' : IDL.Bool,
     'companyName' : Name,
-  });
-  const UserRole = IDL.Variant({
-    'admin' : IDL.Null,
-    'user' : IDL.Null,
-    'guest' : IDL.Null,
   });
   const OrganizationId = IDL.Nat;
   const OrderId = IDL.Nat;
@@ -325,11 +315,9 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
-    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addAdmin' : IDL.Func([IDL.Principal], [], []),
     'addToCart' : IDL.Func([ProductId, IDL.Nat], [], []),
     'addVendorProfile' : IDL.Func([VendorProfile], [], []),
-    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'assignVendorToOrg' : IDL.Func([OrganizationId, VendorId], [], []),
     'bootstrapAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
     'bootstrapFirstAdmin' : IDL.Func([], [], []),
@@ -362,7 +350,6 @@ export const idlFactory = ({ IDL }) => {
     'getCallerOrders' : IDL.Func([], [IDL.Vec(Order)], ['query']),
     'getCallerProducts' : IDL.Func([], [IDL.Vec(Product)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
-    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCallerVendorProfile' : IDL.Func(
         [],
         [IDL.Opt(VendorProfile)],
@@ -420,8 +407,8 @@ export const idlFactory = ({ IDL }) => {
     'hasAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isAdmin' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
     'isAdminInternal' : IDL.Func([IDL.Principal], [IDL.Bool], ['query']),
-    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'isCallerAppOwner' : IDL.Func([], [IDL.Bool], ['query']),
+    'isVendorSuspended' : IDL.Func([VendorId], [IDL.Bool], ['query']),
     'listPublishedProductsByVendor' : IDL.Func(
         [IDL.Principal],
         [IDL.Vec(Product)],
@@ -435,6 +422,9 @@ export const idlFactory = ({ IDL }) => {
     'removeVendorFromOrg' : IDL.Func([OrganizationId, VendorId], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'setAdmins' : IDL.Func([IDL.Vec(IDL.Principal)], [], []),
+    'suspendVendor' : IDL.Func([VendorId], [], []),
+    'unsuspendVendor' : IDL.Func([VendorId], [], []),
+    'unverifyVendor' : IDL.Func([VendorId], [], []),
     'updateOrderStatus' : IDL.Func([OrderId, OrderStatus], [], []),
     'updateOrganization' : IDL.Func(
         [OrganizationId, IDL.Text, IDL.Text, IDL.Text],

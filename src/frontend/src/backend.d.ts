@@ -96,16 +96,10 @@ export enum OrderStatus {
     delivered = "delivered",
     confirmed = "confirmed"
 }
-export enum UserRole {
-    admin = "admin",
-    user = "user",
-    guest = "guest"
-}
 export interface backendInterface {
     addAdmin(adminPrincipal: Principal): Promise<void>;
     addToCart(productId: ProductId, quantity: bigint): Promise<void>;
     addVendorProfile(profile: VendorProfile): Promise<void>;
-    assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     assignVendorToOrg(orgId: OrganizationId, vendorId: VendorId): Promise<void>;
     bootstrapAdmins(principals: Array<Principal>): Promise<void>;
     bootstrapFirstAdmin(): Promise<void>;
@@ -126,7 +120,6 @@ export interface backendInterface {
     getCallerOrders(): Promise<Array<Order>>;
     getCallerProducts(): Promise<Array<Product>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
-    getCallerUserRole(): Promise<UserRole>;
     getCallerVendorProfile(): Promise<VendorProfile | null>;
     getCart(): Promise<Array<CartItem>>;
     getOrderById(orderId: OrderId): Promise<Order | null>;
@@ -148,8 +141,8 @@ export interface backendInterface {
     hasAdmin(): Promise<boolean>;
     isAdmin(principal: Principal): Promise<boolean>;
     isAdminInternal(principal: Principal): Promise<boolean>;
-    isCallerAdmin(): Promise<boolean>;
     isCallerAppOwner(): Promise<boolean>;
+    isVendorSuspended(vendorId: VendorId): Promise<boolean>;
     listPublishedProductsByVendor(vendorPrincipal: Principal): Promise<Array<Product>>;
     listVerifiedVendors(): Promise<Array<VendorProfile>>;
     ping(): Promise<boolean>;
@@ -159,6 +152,9 @@ export interface backendInterface {
     removeVendorFromOrg(orgId: OrganizationId, vendorId: VendorId): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     setAdmins(admins: Array<Principal>): Promise<void>;
+    suspendVendor(vendorId: VendorId): Promise<void>;
+    unsuspendVendor(vendorId: VendorId): Promise<void>;
+    unverifyVendor(vendorId: VendorId): Promise<void>;
     updateOrderStatus(orderId: OrderId, newStatus: OrderStatus): Promise<void>;
     updateOrganization(id: OrganizationId, name: string, description: string, logoUrl: string): Promise<void>;
     updateProduct(productId: ProductId, title: string, description: string, price: bigint, currency: string, imageUrl: string, category: string, isPublished: boolean): Promise<void>;

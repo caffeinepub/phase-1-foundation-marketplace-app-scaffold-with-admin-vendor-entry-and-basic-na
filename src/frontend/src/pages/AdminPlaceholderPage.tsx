@@ -43,6 +43,7 @@ import {
   Plus,
   Search,
   Shield,
+  ShieldCheck,
   ShoppingBag,
   Store,
   Trash2,
@@ -1789,6 +1790,42 @@ export default function AdminPlaceholderPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Advanced Admin Controls Section — App Owner only */}
+        {isAppOwner && (
+          <Card
+            data-ocid="admin.advanced_controls.panel"
+            className="border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20"
+          >
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <CardTitle className="text-amber-800 dark:text-amber-200">
+                  Advanced Admin Controls
+                </CardTitle>
+                <Badge
+                  variant="outline"
+                  className="border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-100/50 dark:bg-amber-900/30 text-xs"
+                >
+                  App Owner Only
+                </Badge>
+              </div>
+              <CardDescription className="text-amber-700/80 dark:text-amber-400/80">
+                Powerful tools reserved for the App Owner. Use with caution —
+                these actions affect the entire admin structure.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed">
+                These controls allow you to perform bulk administrative
+                operations such as bootstrapping the initial admin list or
+                replacing the entire list of admins. Actions in this section are
+                irreversible and should only be used during initial setup or
+                when a full admin reset is required.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

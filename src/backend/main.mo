@@ -5,11 +5,10 @@ import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
 import Nat "mo:core/Nat";
 import Time "mo:core/Time";
-import Auth "authorization/access-control";
 import Map "mo:core/Map";
-import MixinAuthorization "authorization/MixinAuthorization";
+import Migration "migration";
 
-
+(with migration = Migration.run)
 actor {
   type Env = {
     #dev;
@@ -85,9 +84,7 @@ actor {
     vendorIds : [VendorId];
   };
 
-  var accessControlState = Auth.initState();
   var appOwner : ?Principal = null;
-  include MixinAuthorization(accessControlState);
 
   stable var stableVendors : [(Nat, VendorProfile)] = [];
   stable var stableProducts : [(Nat, Product)] = [];
@@ -292,7 +289,7 @@ actor {
   };
 
   public query ({ caller }) func getCallerUserProfile() : async ?UserProfile {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can access their profile");
     };
     userProfiles.get(caller);
@@ -306,7 +303,7 @@ actor {
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : UserProfile) : async () {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
     userProfiles.add(caller, profile);
@@ -379,7 +376,7 @@ actor {
   };
 
   public query ({ caller }) func getCallerProducts() : async [Product] {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only authenticated users can view their products");
     };
 
@@ -404,7 +401,7 @@ actor {
   };
 
   public query ({ caller }) func getCallerVendorProfile() : async ?VendorProfile {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only authenticated users can get their vendor profile");
     };
     switch (vendors.values().find(func(v) { v.user == caller })) {
@@ -414,7 +411,7 @@ actor {
   };
 
   public shared ({ caller }) func updateVendorProfile(vendorId : VendorId, companyName : Text, logoUrl : Text) : async () {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can update vendor profiles");
     };
 
@@ -439,7 +436,7 @@ actor {
   };
 
   public shared ({ caller }) func createVendorProfile(companyName : Text, logoUrl : Text) : async VendorId {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can create vendor profiles");
     };
 
@@ -458,7 +455,7 @@ actor {
   };
 
   public shared ({ caller }) func upsertCallerVendorProfile(companyName : Text, logoUrl : Text) : async VendorId {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only authenticated users can update their vendor profile");
     };
 
@@ -520,7 +517,7 @@ actor {
     category : Text,
     isPublished : Bool,
   ) : async ProductId {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only authenticated users can create products");
     };
 
@@ -659,7 +656,7 @@ actor {
 
   // Add item to cart (authenticated user only).
   public shared ({ caller }) func addToCart(productId : ProductId, quantity : Nat) : async () {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can add to cart");
     };
 
@@ -700,7 +697,7 @@ actor {
 
   // Remove item from cart (authenticated user only).
   public shared ({ caller }) func removeFromCart(productId : ProductId) : async () {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can remove from cart");
     };
 
@@ -728,7 +725,7 @@ actor {
 
   // Clear cart (authenticated user only).
   public shared ({ caller }) func clearCart() : async () {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can clear cart");
     };
 
@@ -737,7 +734,7 @@ actor {
 
   // Place order (converts cart to Order, clears cart).
   public shared ({ caller }) func placeOrder() : async OrderId {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only users can place orders");
     };
 
@@ -792,7 +789,7 @@ actor {
 
   // Get all orders for caller (authenticated user only).
   public query ({ caller }) func getCallerOrders() : async [Order] {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only authenticated users can view their orders");
     };
     orders.values().toArray().filter(func(order) { order.buyer == caller });
@@ -847,7 +844,7 @@ actor {
   // ========= NEW =========
 
   public query ({ caller }) func getVendorOrders() : async [Order] {
-    if (not (Auth.hasPermission(accessControlState, caller, #user))) {
+    if (caller.isAnonymous()) {
       Runtime.trap("Unauthorized: Only authenticated users can view their orders");
     };
 
